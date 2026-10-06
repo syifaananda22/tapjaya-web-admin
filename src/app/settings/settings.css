@@ -1,0 +1,823 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap");
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Poppins", Arial, sans-serif;
+  background: #f4f4f4;
+  color: #111827;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+/* ==========================
+   PAGE
+========================== */
+
+.settings-page {
+  width: 100%;
+  min-height: 100vh;
+
+  background: #f4f4f4;
+}
+
+.settings-layout {
+  width: 100%;
+  min-height: 100vh;
+
+  display: grid;
+
+  grid-template-columns:
+    184px
+    minmax(0, 1fr);
+
+  background: #ffffff;
+}
+
+/* ==========================
+   SIDEBAR
+========================== */
+
+.settings-sidebar {
+  width: 184px;
+  min-height: 100vh;
+
+  padding: 22px 20px;
+
+  background: #ffffff;
+
+  border-right: 6px solid #f2f2f2;
+}
+
+.settings-logo {
+  width: 138px;
+  height: 130px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 17px;
+}
+
+.settings-logo img {
+  width: 130px;
+  height: 120px;
+
+  object-fit: contain;
+}
+
+.settings-navigation {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.settings-nav-item {
+  width: 142px;
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 0 13px;
+
+  border-radius: 5px;
+
+  background: #ececec;
+
+  color: #606060;
+
+  text-decoration: none;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  transition: 0.15s ease;
+}
+
+.settings-nav-item:hover {
+  background: #e4e4e4;
+}
+
+.settings-nav-item.active {
+  background: #d92f2f;
+
+  color: #ffffff;
+}
+
+.settings-nav-item > span {
+  width: 20px;
+  height: 20px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+.settings-nav-item svg {
+  width: 19px;
+  height: 19px;
+
+  fill: currentColor;
+}
+
+/* ==========================
+   CONTENT
+========================== */
+
+.settings-content {
+  width: 100%;
+
+  min-width: 0;
+
+  min-height: 100vh;
+
+  padding:
+    24px
+    clamp(28px, 3.5vw, 52px)
+    26px;
+
+  background: #ffffff;
+}
+
+/* ==========================
+   HEADER
+========================== */
+
+.settings-header h1 {
+  margin: 0;
+
+  color: #0b0b0b;
+
+  font-size: 28px;
+
+  line-height: 1.1;
+
+  font-weight: 700;
+}
+
+.settings-header p {
+  margin: 5px 0 0;
+
+  color: #777777;
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+/* ==========================
+   TOP TABS
+========================== */
+
+.settings-tabs {
+  display: flex;
+
+  align-items: center;
+
+  gap: 22px;
+
+  margin:
+    25px
+    0
+    18px;
+}
+
+.settings-tabs button {
+  min-width: 130px;
+  height: 45px;
+
+  padding: 0 17px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 11px;
+
+  border: 1px solid #e0e0e0;
+
+  border-radius: 6px;
+
+  background: #ffffff;
+
+  color: #111111;
+
+  font-size: 10px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    0.18s ease;
+}
+
+.settings-tabs button:hover {
+  border-color: #d92f2f;
+
+  color: #d92f2f;
+}
+
+.settings-tabs button.active {
+  background: #d92f2f;
+
+  color: #ffffff;
+
+  border-color: #d92f2f;
+
+  box-shadow:
+    0 3px 8px
+    rgba(217, 47, 47, 0.17);
+}
+
+.settings-tabs svg {
+  width: 18px;
+  height: 18px;
+
+  fill: none;
+}
+
+/* ==========================
+   FORM LAYOUT
+========================== */
+
+.settings-form {
+  width: 100%;
+}
+
+.settings-columns {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 0.95fr)
+    minmax(0, 1.05fr);
+
+  gap: 18px;
+}
+
+.settings-column-left,
+.settings-column-right {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 22px;
+}
+
+/* ==========================
+   CARD
+========================== */
+
+.settings-card {
+  scroll-margin-top: 20px;
+
+  padding:
+    18px
+    20px
+    20px;
+
+  border:
+    1px solid
+    #d6d6d6;
+
+  border-radius: 7px;
+
+  background: #ffffff;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.settings-card.focused-card {
+  border-color: #d92f2f;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(217, 47, 47, 0.07);
+
+  transform:
+    translateY(-1px);
+}
+
+.settings-card h2 {
+  margin: 0;
+
+  color: #111111;
+
+  font-size: 13px;
+
+  font-weight: 700;
+}
+
+.card-description {
+  margin: 5px 0 13px;
+
+  color: #757575;
+
+  font-size: 8.5px;
+
+  line-height: 1.4;
+}
+
+/* ==========================
+   PROFILE UPLOAD
+========================== */
+
+.profile-upload-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 10px;
+}
+
+.profile-photo {
+  width: 45px;
+  height: 45px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  overflow: hidden;
+
+  background: #fdebec;
+
+  color: #e74a4f;
+
+  cursor: pointer;
+}
+
+.profile-photo img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.profile-photo svg {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-photo input {
+  display: none;
+}
+
+.upload-info {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  gap: 4px;
+}
+
+.upload-info span {
+  color: #808080;
+
+  font-size: 6.5px;
+}
+
+.upload-button {
+  height: 25px;
+
+  padding: 0 12px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: 1px solid #e0e0e0;
+
+  border-radius: 5px;
+
+  background: #ffffff;
+
+  color: #333333;
+
+  font-size: 7px;
+
+  cursor: pointer;
+}
+
+.upload-button:hover {
+  border-color: #d92f2f;
+
+  color: #d92f2f;
+}
+
+.upload-button input {
+  display: none;
+}
+
+.upload-button.compact {
+  height: 24px;
+}
+
+/* ==========================
+   INPUT
+========================== */
+
+.form-group {
+  width: 100%;
+
+  margin-top: 8px;
+}
+
+.form-group label {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #202020;
+
+  font-size: 7px;
+
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  height: 29px;
+
+  padding: 0 10px;
+
+  border:
+    1px solid
+    #e1e1e1;
+
+  border-radius: 6px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #222222;
+
+  font-size: 8px;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.form-group input:focus {
+  border-color: #d92f2f;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(217, 47, 47, 0.06);
+}
+
+/* ==========================
+   STORE
+========================== */
+
+.store-logo-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  margin:
+    5px
+    0
+    9px;
+}
+
+.store-logo-label {
+  color: #707070;
+
+  font-size: 8px;
+}
+
+.store-logo-preview {
+  width: 47px;
+  height: 47px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    #dddddd;
+
+  border-radius: 6px;
+
+  background: #ffffff;
+
+  cursor: pointer;
+}
+
+.store-logo-preview img {
+  width: 42px;
+  height: 42px;
+
+  object-fit: contain;
+}
+
+.store-logo-preview input {
+  display: none;
+}
+
+.two-column-fields {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  column-gap: 42px;
+}
+
+.time-fields {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+.time-fields input {
+  max-width: 110px;
+}
+
+.time-fields span {
+  color: #444444;
+
+  font-size: 7px;
+}
+
+/* ==========================
+   NOTIFICATION
+========================== */
+
+.notification-card {
+  padding-bottom: 15px;
+}
+
+.notification-setting {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 11px;
+
+  margin-top: 10px;
+}
+
+.notification-setting strong {
+  display: block;
+
+  color: #222222;
+
+  font-size: 8px;
+
+  line-height: 1.1;
+
+  font-weight: 600;
+}
+
+.notification-setting p {
+  margin: 3px 0 0;
+
+  color: #777777;
+
+  font-size: 7px;
+
+  line-height: 1.25;
+}
+
+/* ==========================
+   TOGGLE
+========================== */
+
+.toggle {
+  position: relative;
+
+  width: 31px;
+  height: 17px;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 20px;
+
+  flex-shrink: 0;
+
+  background: #d8d8d8;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease;
+}
+
+.toggle span {
+  position: absolute;
+
+  left: 2px;
+  top: 2px;
+
+  width: 13px;
+  height: 13px;
+
+  border-radius: 50%;
+
+  background: #ffffff;
+
+  transition:
+    left 0.2s ease;
+}
+
+.toggle.on {
+  background: #d92f2f;
+}
+
+.toggle.on span {
+  left: 16px;
+}
+
+/* ==========================
+   PASSWORD
+========================== */
+
+.password-card {
+  min-height: 220px;
+}
+
+/* ==========================
+   MESSAGE
+========================== */
+
+.settings-message {
+  position: fixed;
+
+  right: 30px;
+  bottom: 80px;
+
+  z-index: 20;
+
+  padding:
+    10px
+    16px;
+
+  border-radius: 6px;
+
+  background: #242424;
+
+  color: #ffffff;
+
+  font-size: 9px;
+
+  box-shadow:
+    0 4px 12px
+    rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================
+   SAVE
+========================== */
+
+.save-area {
+  width: 100%;
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-top: 16px;
+}
+
+.save-button {
+  width: 150px;
+  height: 40px;
+
+  border: none;
+
+  border-radius: 0;
+
+  background: #d94848;
+
+  color: #ffffff;
+
+  font-size: 10px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.save-button:hover {
+  background: #c93232;
+
+  transform:
+    translateY(-1px);
+}
+
+/* ==========================
+   RESPONSIVE
+========================== */
+
+@media (max-width: 1150px) {
+
+  .settings-layout {
+    grid-template-columns:
+      175px
+      minmax(0, 1fr);
+  }
+
+  .settings-sidebar {
+    width: 175px;
+
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+
+  .settings-nav-item {
+    width: 135px;
+  }
+
+  .settings-content {
+    padding-left: 26px;
+    padding-right: 26px;
+  }
+
+  .settings-tabs {
+    gap: 10px;
+  }
+
+  .settings-tabs button {
+    min-width: 115px;
+
+    padding:
+      0
+      11px;
+  }
+
+  .two-column-fields {
+    column-gap: 20px;
+  }
+
+}
+
+@media (max-width: 920px) {
+
+  .settings-layout {
+    min-width: 920px;
+  }
+
+}
