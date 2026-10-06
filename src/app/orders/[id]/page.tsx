@@ -62,14 +62,10 @@ export default function OrderDetailPage() {
     }, 2000);
   };
 
-  const handleFinish = () => {
-    setStatus("Selesai");
-    setSavedStatus("Selesai");
-    setShowSuccess(true);
-
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 2000);
+  const handleCancel = () => {
+    setStatus(savedStatus);
+    setAdminNote("");
+    setShowSuccess(false);
   };
 
   const statusBadge = (
@@ -78,10 +74,13 @@ export default function OrderDetailPage() {
     switch (value) {
       case "Menunggu":
         return "bg-yellow-100 text-yellow-600";
+
       case "Diproses":
         return "bg-blue-100 text-blue-600";
+
       case "Siap":
         return "bg-emerald-100 text-emerald-600";
+
       case "Selesai":
         return "bg-green-100 text-green-600";
     }
@@ -118,7 +117,7 @@ export default function OrderDetailPage() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_0.9fr]">
           {/* LEFT */}
           <div className="space-y-4">
-            {/* INFO */}
+            {/* INFORMASI PESANAN */}
             <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
               <h2 className="mb-5 text-[14px] font-bold">
                 Informasi Pesanan
@@ -128,6 +127,7 @@ export default function OrderDetailPage() {
                 <span className="text-gray-500">
                   No. Pesanan
                 </span>
+
                 <span className="font-semibold">
                   #{order.id}
                 </span>
@@ -135,6 +135,7 @@ export default function OrderDetailPage() {
                 <span className="text-gray-500">
                   Waktu Pesanan
                 </span>
+
                 <span>
                   2 Oktober 2026,{" "}
                   {order.time}
@@ -143,6 +144,7 @@ export default function OrderDetailPage() {
                 <span className="text-gray-500">
                   Pelanggan
                 </span>
+
                 <span className="font-semibold">
                   {order.customerName}
                 </span>
@@ -150,6 +152,7 @@ export default function OrderDetailPage() {
                 <span className="text-gray-500">
                   Tipe Pesanan
                 </span>
+
                 <span>
                   {order.orderType}
                 </span>
@@ -157,6 +160,7 @@ export default function OrderDetailPage() {
                 <span className="text-gray-500">
                   No. Meja
                 </span>
+
                 <span>
                   {order.tableNumber}
                 </span>
@@ -185,7 +189,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* MENU */}
+            {/* DAFTAR MENU */}
             <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
               <h2 className="mb-5 text-[14px] font-bold">
                 Daftar Menu
@@ -261,13 +265,13 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          {/* STATUS */}
+          {/* RIGHT */}
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <h2 className="text-[14px] font-bold">
               Update Status Pesanan
             </h2>
 
-            {/* STEPPER */}
+            {/* STATUS STEPPER */}
             <div className="mt-5">
               {statusSteps.map(
                 (item, index) => {
@@ -328,7 +332,7 @@ export default function OrderDetailPage() {
               )}
             </div>
 
-            {/* ADMIN NOTE */}
+            {/* CATATAN ADMIN */}
             <div className="mt-2">
               <label className="mb-1.5 block text-[11px] font-semibold">
                 Catatan Admin{" "}
@@ -349,22 +353,43 @@ export default function OrderDetailPage() {
               />
             </div>
 
+            {/* SIMPAN PERUBAHAN */}
             <button
               type="button"
               onClick={handleUpdateStatus}
-              className="mt-4 h-[42px] w-full rounded-lg bg-[#e63131] text-[11px] font-semibold text-white transition hover:bg-[#ca2929]"
+              disabled={
+                status === savedStatus &&
+                adminNote.trim() === ""
+              }
+              className={`mt-4 h-[42px] w-full rounded-lg text-[11px] font-semibold text-white transition ${
+                status === savedStatus &&
+                adminNote.trim() === ""
+                  ? "cursor-not-allowed bg-red-300"
+                  : "bg-[#e63131] hover:bg-[#ca2929]"
+              }`}
             >
-              Ubah ke {status}
+              Simpan Perubahan
             </button>
 
+            {/* BATALKAN */}
             <button
               type="button"
-              onClick={handleFinish}
-              className="mt-2 h-[42px] w-full rounded-lg border border-red-300 bg-white text-[11px] font-semibold text-red-500 transition hover:bg-red-50"
+              onClick={handleCancel}
+              disabled={
+                status === savedStatus &&
+                adminNote.trim() === ""
+              }
+              className={`mt-2 h-[42px] w-full rounded-lg border text-[11px] font-semibold transition ${
+                status === savedStatus &&
+                adminNote.trim() === ""
+                  ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-300"
+                  : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
             >
-              Selesai
+              Batalkan
             </button>
 
+            {/* SUCCESS MESSAGE */}
             {showSuccess && (
               <div className="mt-3 rounded-lg bg-green-50 px-3 py-2 text-center text-[10px] font-medium text-green-600">
                 Status berhasil diperbarui
