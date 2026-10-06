@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+[📁 Screenshot Hasil Akhir TAP JAYA Web Admin](https://drive.google.com/drive/folders/1BAPhHugyEC62rGEHClOB4kVtnKZsUKiu)
 
-## Getting Started
+# TAP JAYA – Web Admin
 
-First, run the development server:
+TAP JAYA Web Admin merupakan prototype dashboard administrator yang dikembangkan menggunakan **Next.js dan TypeScript** untuk memenuhi Ujian Tengah Semester mata kuliah Pemrograman Web Framework / Frontend Development.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Aplikasi ini digunakan untuk membantu admin memantau aktivitas pemesanan, melihat ringkasan penjualan, mengelola pesanan, serta memperbarui status pesanan. Data yang digunakan masih berupa **dummy data** dan **localStorage**, sehingga belum menggunakan backend maupun database.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Fitur Utama
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Login Admin
+- Register Admin
+- Validasi form
+- Show/hide password
+- Remember me
+- Dashboard Admin
+- Statistik total pesanan
+- Statistik total pendapatan
+- Statistik pesanan selesai
+- Statistik stok menipis
+- Grafik pendapatan
+- Kategori menu terlaris
+- Filter periode
+- Filter tanggal
+- Menu terlaris hari ini
+- Pesanan terbaru
+- Notifikasi Admin
+- Dropdown Admin
+- Logout
+- Manajemen Pesanan
+- Search pesanan
+- Filter status pesanan
+- Filter tanggal pesanan
+- Detail Pesanan
+- Update status pesanan
+- Catatan Admin
+- Responsive layout
+- Reusable component
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Status Pesanan
 
-## Learn More
+Status pesanan yang digunakan pada aplikasi terdiri dari:
 
-To learn more about Next.js, take a look at the following resources:
+- Menunggu
+- Diproses
+- Siap
+- Selesai
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Teknologi dan Library
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Project ini menggunakan:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Lucide React
+- Recharts
+- LocalStorage
+- Dummy Data
