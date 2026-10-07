@@ -1,19 +1,37 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import "./products.css";
+import Image from "next/image";
 
-type MenuItem = {
+import {
+  CalendarDays,
+  ChevronDown,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
+
+import Sidebar from "@/components/Sidebar";
+import AdminHeader from "@/components/AdminHeader";
+
+type ProductCategory =
+  | "Makanan"
+  | "Minuman"
+  | "Kopi"
+  | "Snack";
+
+type Product = {
   id: number;
   name: string;
-  category: "Makanan" | "Kopi" | "Snack" | "Minuman";
+  category: ProductCategory;
   price: number;
   stock: number;
   image: string;
 };
 
-const initialMenus: MenuItem[] = [
+const initialProducts: Product[] = [
   {
     id: 1,
     name: "Bakmi Jaya",
@@ -48,423 +66,473 @@ const initialMenus: MenuItem[] = [
   },
   {
     id: 5,
-    name: "Cireng",
-    category: "Snack",
-    price: 15455,
-    stock: 60,
-    image: "/images/menu/cireng.jpg",
-  },
-  {
-    id: 6,
-    name: "Milkshake Manggo",
+    name: "Milkshake Mango",
     category: "Minuman",
     price: 34545,
     stock: 25,
     image: "/images/menu/milkshake-mango.jpg",
   },
   {
+    id: 6,
+    name: "Bakmi Jaya Special",
+    category: "Makanan",
+    price: 32000,
+    stock: 30,
+    image: "/images/menu/bakmi-jaya.jpg",
+  },
+  {
     id: 7,
-    name: "Salted Caramel Macchiato",
+    name: "Kopi Susu Large",
     category: "Kopi",
-    price: 45000,
+    price: 30000,
     stock: 20,
-    image: "/images/menu/salted caramel.jpg",
+    image: "/images/menu/kopi-susu.jpg",
   },
   {
     id: 8,
-    name: "Greentea Jasmine",
+    name: "Nasi Goreng Special",
+    category: "Makanan",
+    price: 48000,
+    stock: 27,
+    image: "/images/menu/nasi-goreng.jpg",
+  },
+  {
+    id: 9,
+    name: "Mie Goreng Special",
+    category: "Makanan",
+    price: 47000,
+    stock: 23,
+    image: "/images/menu/mie-goreng.jpg",
+  },
+  {
+    id: 10,
+    name: "Milkshake Mango Large",
     category: "Minuman",
-    price: 22545,
-    stock: 30,
-    image: "/images/menu/greentea.jpg",
+    price: 39000,
+    stock: 18,
+    image: "/images/menu/milkshake-mango.jpg",
   },
 ];
 
-const rupiah = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  minimumFractionDigits: 0,
-});
-
-function DashboardIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H14v-6h-4v6H3.5a.5.5 0 0 1-.5-.5v-9.7Z" />
-    </svg>
-  );
-}
-
-function OrderIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M7 4h2V2h6v2h2v2h3v16H4V6h3V4Zm4 0v2h2V4h-2Zm-2 7 2.2 2.2L16 8.5l1.4 1.4-6.2 6.2L7.6 12.5 9 11Z" />
-    </svg>
-  );
-}
-
-function ProductIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M5 4h14v16H5v-5H2V9h3V4Zm2 3v10h10V7H7Zm-3 4v2h3v-2H4Zm5-2h6v2H9V9Zm0 4h6v2H9v-2Z" />
-    </svg>
-  );
-}
-
-function ReportIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 2h9l5 5v15H6V2Zm8 2.5V8h3.5L14 4.5ZM9 12h8v1.8H9V12Zm0 4h8v1.8H9V16Z" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m19.2 13.2.1-1.2-.1-1.2 2-1.5-2-3.4-2.5 1a8 8 0 0 0-2-1.1L14.4 3H9.6l-.4 2.8a8 8 0 0 0-2 1.1l-2.5-1-2 3.4 2 1.5-.1 1.2.1 1.2-2 1.5 2 3.4 2.5-1a8 8 0 0 0 2 1.1l.4 2.8h4.8l.4-2.8a8 8 0 0 0 2-1.1l2.5 1 2-3.4-2.1-1.5ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle
-        cx="10.5"
-        cy="10.5"
-        r="6.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m15.5 15.5 4.5 4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect
-        x="3.5"
-        y="5"
-        width="17"
-        height="16"
-        rx="2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path
-        d="M7 2.5v5M17 2.5v5M3.5 9.5h17"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" fill="white" />
-      <path
-        d="M12 7.5v9M7.5 12h9"
-        stroke="#d92f2f"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function EditIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m4 15.8 9.8-9.8 4.2 4.2-9.8 9.8L3 21l1-5.2Zm11.2-11.2 1.6-1.6a1.6 1.6 0 0 1 2.2 0l2 2a1.6 1.6 0 0 1 0 2.2l-1.6 1.6-4.2-4.2Z" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M8 3h8l1 2h4v2H3V5h4l1-2Zm-2 6h12l-1 12H7L6 9Zm4 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M18 8a6 6 0 0 0-12 0c0 6.5-2.7 7-2.7 7h17.4S18 14.5 18 8ZM10 19h4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="7.5" r="4" />
-      <path d="M4 21a8 8 0 0 1 16 0H4Z" />
-    </svg>
-  );
-}
+const emptyForm = {
+  name: "",
+  category: "Makanan" as ProductCategory,
+  price: "",
+  stock: "",
+  image: "/images/menu/bakmi-jaya.jpg",
+};
 
 export default function ProductsPage() {
-  const [menus, setMenus] = useState<MenuItem[]>(initialMenus);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("Semua status");
+  const [products, setProducts] =
+    useState<Product[]>(initialProducts);
 
-  const filteredMenus = useMemo(() => {
-    return menus.filter((menu) => {
-      const matchSearch = menu.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("Semua");
+
+  const [showDateFilter, setShowDateFilter] =
+    useState(false);
+
+  const [startDate, setStartDate] =
+    useState("2026-10-02");
+
+  const [endDate, setEndDate] =
+    useState("2026-10-02");
+
+  const [showModal, setShowModal] =
+    useState(false);
+
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
+
+  const [form, setForm] =
+    useState(emptyForm);
+
+  const filteredProducts = useMemo(() => {
+    const keyword = search.toLowerCase();
+
+    return products.filter((product) => {
+      const matchSearch =
+        product.name
+          .toLowerCase()
+          .includes(keyword);
 
       const matchCategory =
-        category === "Semua status" || menu.category === category;
+        category === "Semua" ||
+        product.category === category;
 
       return matchSearch && matchCategory;
     });
-  }, [menus, search, category]);
+  }, [products, search, category]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  const categoryClass = (
+    value: ProductCategory
+  ) => {
+    switch (value) {
+      case "Makanan":
+        return "bg-gray-100 text-gray-600";
+      case "Kopi":
+        return "bg-orange-50 text-orange-600";
+      case "Minuman":
+        return "bg-blue-50 text-blue-600";
+      case "Snack":
+        return "bg-red-50 text-red-500";
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowModal(true);
+  };
+
+  const openEditModal = (
+    product: Product
+  ) => {
+    setEditingId(product.id);
+
+    setForm({
+      name: product.name,
+      category: product.category,
+      price: String(product.price),
+      stock: String(product.stock),
+      image: product.image,
+    });
+
+    setShowModal(true);
+  };
+
+  const handleSave = () => {
+    if (
+      !form.name.trim() ||
+      !form.price ||
+      !form.stock
+    ) {
+      return;
+    }
+
+    if (editingId !== null) {
+      setProducts((prev) =>
+        prev.map((product) =>
+          product.id === editingId
+            ? {
+                ...product,
+                name: form.name,
+                category:
+                  form.category,
+                price: Number(
+                  form.price
+                ),
+                stock: Number(
+                  form.stock
+                ),
+                image: form.image,
+              }
+            : product
+        )
+      );
+    } else {
+      setProducts((prev) => [
+        ...prev,
+        {
+          id:
+            Math.max(
+              ...prev.map(
+                (item) => item.id
+              ),
+              0
+            ) + 1,
+          name: form.name,
+          category: form.category,
+          price: Number(form.price),
+          stock: Number(form.stock),
+          image: form.image,
+        },
+      ]);
+    }
+
+    setShowModal(false);
+    setForm(emptyForm);
+    setEditingId(null);
+  };
 
   const handleDelete = (id: number) => {
     const confirmed = window.confirm(
-      "Apakah kamu yakin ingin menghapus menu ini?"
+      "Hapus menu ini?"
     );
 
     if (!confirmed) return;
 
-    setMenus((prev) => prev.filter((menu) => menu.id !== id));
+    setProducts((prev) =>
+      prev.filter(
+        (product) => product.id !== id
+      )
+    );
   };
 
   return (
-    <main className="product-page">
-      <div className="admin-shell">
-        <aside className="sidebar">
-          <div className="logo-wrapper">
-            <img
-              src="/images/tapjaya-logo.png"
-              alt="TAP JAYA"
-              className="brand-logo"
+    <main className="flex min-h-screen bg-[#f5f5f5]">
+      <Sidebar />
+
+      <section className="min-w-0 flex-1 p-5">
+        {/* HEADER */}
+        <div className="mb-5">
+          <AdminHeader
+            title="Manajemen Menu Produk"
+            subtitle="Kelola menu yang tersedia di caffe Anda."
+          />
+        </div>
+
+        {/* FILTER */}
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+          {/* SEARCH */}
+          <div className="relative w-full lg:max-w-[320px]">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Cari nama menu"
+              className="h-[40px] w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-[11px] outline-none transition focus:border-red-400"
             />
           </div>
 
-          <nav className="sidebar-nav">
-            <Link href="/dashboard" className="nav-item">
-              <span className="nav-icon">
-                <DashboardIcon />
-              </span>
-              <span>Dashboard</span>
-            </Link>
-
-            <Link href="/orders" className="nav-item">
-              <span className="nav-icon">
-                <OrderIcon />
-              </span>
-              <span>Pesanan</span>
-            </Link>
-
-            <Link href="/products" className="nav-item active">
-              <span className="nav-icon">
-                <ProductIcon />
-              </span>
-              <span>Menu Produk</span>
-            </Link>
-
-            <Link href="/reports" className="nav-item">
-              <span className="nav-icon">
-                <ReportIcon />
-              </span>
-              <span>Laporan</span>
-            </Link>
-
-            <Link href="/settings" className="nav-item">
-              <span className="nav-icon">
-                <SettingsIcon />
-              </span>
-              <span>Pengaturan</span>
-            </Link>
-          </nav>
-        </aside>
-
-        <section className="content-area">
-          <header className="top-header">
-            <div className="heading-area">
-              <h1>Manajemen Menu Produk</h1>
-              <p>Kelola menu anda yang tersedia di caffe Anda.</p>
-            </div>
-
-            <div className="profile-area">
-              <button
-                type="button"
-                className="notification-button"
-                aria-label="Notifikasi"
-              >
-                <BellIcon />
-                <span className="notification-dot" />
-              </button>
-
-              <div className="user-avatar">
-                <UserIcon />
-              </div>
-
-              <div className="user-info">
-                <div className="user-name-row">
-                  <strong>Admin</strong>
-                  <span className="small-chevron">▼</span>
-                </div>
-
-                <span>Toko Kopi Jaya Berawan</span>
-              </div>
-            </div>
-          </header>
-
-          <section className="toolbar">
-            <div className="search-box">
-              <span className="search-icon">
-                <SearchIcon />
-              </span>
-
-              <input
-                type="text"
-                placeholder="Cari nomer pesanan, nama menu"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            <button type="button" className="date-button">
-              <span className="calendar-icon">
-                <CalendarIcon />
-              </span>
-
-              <span className="date-text">
-                2 Okt 2026 - 2 Okt 2026
-              </span>
-
-              <span className="chevron">▼</span>
-            </button>
-
-            <div className="status-select-wrapper">
-              <select
-                className="status-select"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="Semua status">Semua status</option>
-                <option value="Makanan">Makanan</option>
-                <option value="Kopi">Kopi</option>
-                <option value="Snack">Snack</option>
-                <option value="Minuman">Minuman</option>
-              </select>
-            </div>
-
+          {/* DATE */}
+          <div className="relative">
             <button
               type="button"
-              className="add-menu-button"
-              onClick={() => alert("Form tambah menu")}
+              onClick={() =>
+                setShowDateFilter(
+                  !showDateFilter
+                )
+              }
+              className="flex h-[40px] min-w-[225px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 text-[11px] text-gray-600"
             >
-              <span className="plus-icon">
-                <PlusIcon />
+              <CalendarDays size={15} />
+
+              <span className="flex-1 text-left">
+                {startDate} - {endDate}
               </span>
 
-              <span>Tambah Menu</span>
+              <ChevronDown size={13} />
             </button>
-          </section>
 
-          <section className="table-card">
-            <table className="menu-table">
+            {showDateFilter && (
+              <div className="absolute left-0 top-11 z-50 w-[290px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                <p className="mb-3 text-[12px] font-bold">
+                  Pilih Tanggal
+                </p>
+
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) =>
+                    setStartDate(
+                      e.target.value
+                    )
+                  }
+                  className="mb-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px]"
+                />
+
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) =>
+                    setEndDate(
+                      e.target.value
+                    )
+                  }
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px]"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowDateFilter(false)
+                  }
+                  className="mt-4 h-[34px] w-full rounded-lg bg-[#e63131] text-[10px] font-semibold text-white"
+                >
+                  Terapkan
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* CATEGORY */}
+          <div className="relative">
+            <select
+              value={category}
+              onChange={(e) =>
+                setCategory(e.target.value)
+              }
+              className="h-[40px] min-w-[180px] appearance-none rounded-lg border border-gray-200 bg-white px-4 pr-9 text-[11px] outline-none"
+            >
+              <option value="Semua">
+                Semua kategori
+              </option>
+              <option value="Makanan">
+                Makanan
+              </option>
+              <option value="Minuman">
+                Minuman
+              </option>
+              <option value="Kopi">
+                Kopi
+              </option>
+              <option value="Snack">
+                Snack
+              </option>
+            </select>
+
+            <ChevronDown
+              size={13}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+            />
+          </div>
+
+          {/* ADD */}
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="flex h-[40px] items-center justify-center gap-2 rounded-lg bg-[#e63131] px-4 text-[11px] font-semibold text-white transition hover:bg-[#ca2929] lg:ml-auto"
+          >
+            <Plus size={15} />
+            Tambah Menu
+          </button>
+        </div>
+
+        {/* TABLE */}
+        <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-separate border-spacing-0">
               <thead>
-                <tr>
-                  <th className="image-column"></th>
-                  <th>Nama Menu</th>
-                  <th>Kategori</th>
-                  <th>Harga</th>
-                  <th>Stok</th>
-                  <th className="action-heading">Aksi</th>
+                <tr className="bg-[#f7f7f7] text-left text-[11px] font-semibold text-gray-600">
+                  <th className="px-4 py-3">
+                    Nama Menu
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Kategori
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Harga
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Stok
+                  </th>
+
+                  <th className="px-4 py-3 text-center">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {filteredMenus.map((menu) => (
-                  <tr key={menu.id}>
-                    <td className="image-cell">
-                      <img
-                        src={menu.image}
-                        alt={menu.name}
-                      />
-                    </td>
+                {filteredProducts.map(
+                  (product) => (
+                    <tr
+                      key={product.id}
+                      className="text-[11px] text-gray-700 transition hover:bg-gray-50"
+                    >
+                      <td className="border-b border-gray-100 px-4 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <Image
+                            src={
+                              product.image
+                            }
+                            alt={
+                              product.name
+                            }
+                            width={36}
+                            height={36}
+                            className="h-[36px] w-[36px] rounded-lg object-cover"
+                          />
 
-                    <td className="menu-name">
-                      {menu.name}
-                    </td>
+                          <span className="font-medium text-gray-800">
+                            {
+                              product.name
+                            }
+                          </span>
+                        </div>
+                      </td>
 
-                    <td>
-                      <span
-                        className={`category-badge ${menu.category.toLowerCase()}`}
-                      >
-                        {menu.category}
-                      </span>
-                    </td>
-
-                    <td className="price-cell">
-                      {rupiah
-                        .format(menu.price)
-                        .replace("Rp", "Rp ")}
-                    </td>
-
-                    <td className="stock-cell">
-                      {menu.stock}
-                    </td>
-
-                    <td>
-                      <div className="table-actions">
-                        <button
-                          type="button"
-                          className="icon-action edit"
-                          aria-label={`Edit ${menu.name}`}
-                          onClick={() =>
-                            alert(`Edit menu: ${menu.name}`)
+                      <td className="border-b border-gray-100 px-4 py-2.5">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-[9px] font-medium ${categoryClass(
+                            product.category
+                          )}`}
+                        >
+                          {
+                            product.category
                           }
-                        >
-                          <EditIcon />
-                        </button>
+                        </span>
+                      </td>
 
-                        <button
-                          type="button"
-                          className="icon-action delete"
-                          aria-label={`Hapus ${menu.name}`}
-                          onClick={() => handleDelete(menu.id)}
-                        >
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="border-b border-gray-100 px-4 py-2.5">
+                        {formatCurrency(
+                          product.price
+                        )}
+                      </td>
 
-                {filteredMenus.length === 0 && (
+                      <td className="border-b border-gray-100 px-4 py-2.5">
+                        {product.stock}
+                      </td>
+
+                      <td className="border-b border-gray-100 px-4 py-2.5">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openEditModal(
+                                product
+                              )
+                            }
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
+                          >
+                            <Pencil
+                              size={14}
+                            />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDelete(
+                                product.id
+                              )
+                            }
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                          >
+                            <Trash2
+                              size={14}
+                            />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                )}
+
+                {filteredProducts.length ===
+                  0 && (
                   <tr>
                     <td
-                      colSpan={6}
-                      className="empty-state"
+                      colSpan={5}
+                      className="py-10 text-center text-[11px] text-gray-400"
                     >
                       Menu tidak ditemukan.
                     </td>
@@ -472,9 +540,184 @@ export default function ProductsPage() {
                 )}
               </tbody>
             </table>
-          </section>
-        </section>
-      </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ADD / EDIT MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-[430px] rounded-xl bg-white p-5 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-bold">
+                  {editingId !== null
+                    ? "Edit Menu"
+                    : "Tambah Menu"}
+                </h2>
+
+                <p className="mt-1 text-[10px] text-gray-500">
+                  Lengkapi informasi menu.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowModal(false)
+                }
+                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
+                  Nama Menu
+                </label>
+
+                <input
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      name: e.target.value,
+                    })
+                  }
+                  className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
+                  Kategori
+                </label>
+
+                <select
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      category:
+                        e.target
+                          .value as ProductCategory,
+                    })
+                  }
+                  className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none"
+                >
+                  <option value="Makanan">
+                    Makanan
+                  </option>
+                  <option value="Minuman">
+                    Minuman
+                  </option>
+                  <option value="Kopi">
+                    Kopi
+                  </option>
+                  <option value="Snack">
+                    Snack
+                  </option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
+                    Harga
+                  </label>
+
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        price:
+                          e.target.value,
+                      })
+                    }
+                    className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
+                    Stok
+                  </label>
+
+                  <input
+                    type="number"
+                    value={form.stock}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        stock:
+                          e.target.value,
+                      })
+                    }
+                    className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
+                  Gambar
+                </label>
+
+                <select
+                  value={form.image}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      image: e.target.value,
+                    })
+                  }
+                  className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px]"
+                >
+                  <option value="/images/menu/bakmi-jaya.jpg">
+                    Bakmi
+                  </option>
+                  <option value="/images/menu/kopi-susu.jpg">
+                    Kopi Susu
+                  </option>
+                  <option value="/images/menu/nasi-goreng.jpg">
+                    Nasi Goreng
+                  </option>
+                  <option value="/images/menu/mie-goreng.jpg">
+                    Mie Goreng
+                  </option>
+                  <option value="/images/menu/milkshake-mango.jpg">
+                    Milkshake
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setShowModal(false)
+                }
+                className="h-[38px] rounded-lg border border-gray-200 px-4 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Batalkan
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                className="h-[38px] rounded-lg bg-[#e63131] px-4 text-[11px] font-semibold text-white hover:bg-[#ca2929]"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

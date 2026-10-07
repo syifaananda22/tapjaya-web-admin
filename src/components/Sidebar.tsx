@@ -25,17 +25,17 @@ const menus = [
   },
   {
     name: "Menu Produk",
-    href: "#",
+    href: "/products",
     icon: Package,
   },
   {
     name: "Laporan",
-    href: "#",
+    href: "/reports",
     icon: FileText,
   },
   {
     name: "Pengaturan",
-    href: "#",
+    href: "/settings",
     icon: Settings,
   },
 ];
@@ -65,7 +65,13 @@ export default function Sidebar() {
           const active =
             pathname === menu.href ||
             (menu.href === "/orders" &&
-              pathname.startsWith("/orders/"));
+              pathname.startsWith("/orders/")) ||
+            (menu.href === "/products" &&
+              pathname.startsWith("/products/")) ||
+            (menu.href === "/reports" &&
+              pathname.startsWith("/reports/")) ||
+            (menu.href === "/settings" &&
+              pathname.startsWith("/settings/"));
 
           return (
             <Link
@@ -78,7 +84,6 @@ export default function Sidebar() {
               }`}
             >
               <Icon size={15} strokeWidth={2} />
-
               <span>{menu.name}</span>
             </Link>
           );
