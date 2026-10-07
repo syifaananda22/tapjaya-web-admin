@@ -71,11 +71,10 @@ export default function Sidebar() {
             <Link
               key={menu.name}
               href={menu.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-[11px] text-[12px] font-semibold transition ${
-                active
-                  ? "bg-[#e63131] text-white"
-                  : "bg-[#f5f5f5] text-[#666666] hover:bg-red-50 hover:text-[#e63131]"
-              }`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-[11px] text-[12px] font-semibold transition ${active
+                ? "bg-[#e63131] text-white"
+                : "bg-[#f5f5f5] text-[#666666] hover:bg-red-50 hover:text-[#e63131]"
+                }`}
             >
               <Icon size={15} strokeWidth={2} />
 
