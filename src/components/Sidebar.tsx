@@ -12,7 +12,7 @@ import {
   Settings,
 } from "lucide-react";
 
-const menuItems = [
+const menus = [
   {
     name: "Dashboard",
     href: "/dashboard",
@@ -35,7 +35,7 @@ const menuItems = [
   },
   {
     name: "Pengaturan",
-    href: "/settings",
+    href: "settings",
     icon: Settings,
   },
 ];
@@ -44,55 +44,42 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white px-[18px] py-[20px]">
+    <aside className="hidden min-h-screen w-[170px] shrink-0 border-r border-gray-200 bg-white lg:block">
       {/* LOGO */}
-      <div className="mb-[28px] flex justify-center">
-        <div className="flex h-[145px] w-[145px] items-center justify-center">
-          <Image
-            src="/images/tapjaya-logo.png"
-            alt="TAP JAYA"
-            width={145}
-            height={145}
-            priority
-            className="h-full w-full object-contain"
-          />
-        </div>
+      <div className="flex h-[130px] items-center justify-center border-b border-gray-100 px-4">
+        <Image
+          src="/images/tapjaya-logo.png"
+          alt="TAP JAYA"
+          width={140}
+          height={105}
+          priority
+          className="h-auto w-[112px] object-contain"
+        />
       </div>
 
-      {/* MENU */}
-      <nav className="flex flex-col gap-[11px]">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
+      {/* NAVIGATION */}
+      <nav className="space-y-2 px-3 py-4">
+        {menus.map((menu) => {
+          const Icon = menu.icon;
 
-          const isActive =
-            pathname === item.href ||
-            pathname.startsWith(
-              `${item.href}/`
-            );
+          const active =
+            pathname === menu.href ||
+            (menu.href === "/orders" &&
+              pathname.startsWith("/orders/"));
 
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              className={`group flex h-[60px] w-full items-center gap-[15px] rounded-[12px] px-[18px] text-[15px] font-semibold transition-all duration-200 ${
-                isActive
-                  ? "bg-[#ef3333] text-white shadow-sm"
-                  : "bg-[#f3f3f3] text-[#555555] hover:bg-[#e9e9e9]"
+              key={menu.name}
+              href={menu.href}
+              className={`flex items-center gap-3 rounded-lg px-3 py-[11px] text-[12px] font-semibold transition ${
+                active
+                  ? "bg-[#e63131] text-white"
+                  : "bg-[#f5f5f5] text-[#666666] hover:bg-red-50 hover:text-[#e63131]"
               }`}
             >
-              <Icon
-                size={21}
-                strokeWidth={2}
-                className={
-                  isActive
-                    ? "text-white"
-                    : "text-[#666666] transition group-hover:text-[#444444]"
-                }
-              />
+              <Icon size={15} strokeWidth={2} />
 
-              <span className="whitespace-nowrap">
-                {item.name}
-              </span>
+              <span>{menu.name}</span>
             </Link>
           );
         })}
