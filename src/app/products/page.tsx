@@ -1,15 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  useMemo,
+  useState,
+} from "react";
+
 import Image from "next/image";
 
 import {
   CalendarDays,
   ChevronDown,
+  ImagePlus,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 
@@ -119,18 +126,23 @@ const emptyForm = {
   category: "Makanan" as ProductCategory,
   price: "",
   stock: "",
-  image: "/images/menu/bakmi-jaya.jpg",
+  image: "",
 };
 
 export default function ProductsPage() {
   const [products, setProducts] =
     useState<Product[]>(initialProducts);
 
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("Semua");
+  const [search, setSearch] =
+    useState("");
 
-  const [showDateFilter, setShowDateFilter] =
-    useState(false);
+  const [category, setCategory] =
+    useState("Semua");
+
+  const [
+    showDateFilter,
+    setShowDateFilter,
+  ] = useState(false);
 
   const [startDate, setStartDate] =
     useState("2026-10-02");
@@ -147,50 +159,76 @@ export default function ProductsPage() {
   const [form, setForm] =
     useState(emptyForm);
 
-  const filteredProducts = useMemo(() => {
-    const keyword = search.toLowerCase();
+  const filteredProducts = useMemo(
+    () => {
+      const keyword =
+        search.toLowerCase();
 
-    return products.filter((product) => {
-      const matchSearch =
-        product.name
-          .toLowerCase()
-          .includes(keyword);
+      return products.filter(
+        (product) => {
+          const matchSearch =
+            product.name
+              .toLowerCase()
+              .includes(keyword);
 
-      const matchCategory =
-        category === "Semua" ||
-        product.category === category;
+          const matchCategory =
+            category === "Semua" ||
+            product.category ===
+              category;
 
-      return matchSearch && matchCategory;
-    });
-  }, [products, search, category]);
+          return (
+            matchSearch &&
+            matchCategory
+          );
+        }
+      );
+    },
+    [products, search, category]
+  );
 
-  const formatCurrency = (value: number) =>
+  const formatCurrency = (
+    value: number
+  ) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(value);
 
-  const categoryClass = (
+  const getCategoryClass = (
     value: ProductCategory
   ) => {
     switch (value) {
       case "Makanan":
-        return "bg-gray-100 text-gray-600";
-      case "Kopi":
-        return "bg-orange-50 text-orange-600";
-      case "Minuman":
-        return "bg-blue-50 text-blue-600";
-      case "Snack":
         return "bg-red-50 text-red-500";
+
+      case "Minuman":
+        return "bg-blue-50 text-blue-500";
+
+      case "Kopi":
+        return "bg-orange-50 text-orange-500";
+
+      case "Snack":
+        return "bg-yellow-50 text-yellow-600";
+
+      default:
+        return "";
     }
   };
+
+  /* ======================
+     OPEN ADD MODAL
+  ====================== */
 
   const openAddModal = () => {
     setEditingId(null);
     setForm(emptyForm);
     setShowModal(true);
   };
+
+  /* ======================
+     OPEN EDIT MODAL
+  ====================== */
 
   const openEditModal = (
     product: Product
@@ -199,14 +237,82 @@ export default function ProductsPage() {
 
     setForm({
       name: product.name,
-      category: product.category,
-      price: String(product.price),
-      stock: String(product.stock),
+      category:
+        product.category,
+      price: String(
+        product.price
+      ),
+      stock: String(
+        product.stock
+      ),
       image: product.image,
     });
 
     setShowModal(true);
   };
+
+  /* ======================
+     UPLOAD IMAGE
+  ====================== */
+
+  const handleImageUpload = (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+      window.alert(
+        "Format gambar harus JPG, PNG, atau WEBP."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    if (
+      file.size >
+      2 * 1024 * 1024
+    ) {
+      window.alert(
+        "Ukuran gambar maksimal 2 MB."
+      );
+
+      event.target.value = "";
+      return;
+    }
+
+    const reader =
+      new FileReader();
+
+    reader.onloadend = () => {
+      const imageData =
+        reader.result as string;
+
+      setForm((prev) => ({
+        ...prev,
+        image: imageData,
+      }));
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  /* ======================
+     SAVE PRODUCT
+  ====================== */
 
   const handleSave = () => {
     if (
@@ -214,13 +320,26 @@ export default function ProductsPage() {
       !form.price ||
       !form.stock
     ) {
+      window.alert(
+        "Nama menu, harga, dan stok wajib diisi."
+      );
+
+      return;
+    }
+
+    if (!form.image) {
+      window.alert(
+        "Silakan upload gambar menu."
+      );
+
       return;
     }
 
     if (editingId !== null) {
       setProducts((prev) =>
         prev.map((product) =>
-          product.id === editingId
+          product.id ===
+          editingId
             ? {
                 ...product,
                 name: form.name,
@@ -232,7 +351,8 @@ export default function ProductsPage() {
                 stock: Number(
                   form.stock
                 ),
-                image: form.image,
+                image:
+                  form.image,
               }
             : product
         )
@@ -244,34 +364,49 @@ export default function ProductsPage() {
           id:
             Math.max(
               ...prev.map(
-                (item) => item.id
+                (item) =>
+                  item.id
               ),
               0
             ) + 1,
+
           name: form.name,
-          category: form.category,
-          price: Number(form.price),
-          stock: Number(form.stock),
+          category:
+            form.category,
+          price: Number(
+            form.price
+          ),
+          stock: Number(
+            form.stock
+          ),
           image: form.image,
         },
       ]);
     }
 
     setShowModal(false);
-    setForm(emptyForm);
     setEditingId(null);
+    setForm(emptyForm);
   };
 
-  const handleDelete = (id: number) => {
-    const confirmed = window.confirm(
-      "Hapus menu ini?"
-    );
+  /* ======================
+     DELETE PRODUCT
+  ====================== */
+
+  const handleDelete = (
+    id: number
+  ) => {
+    const confirmed =
+      window.confirm(
+        "Hapus menu ini?"
+      );
 
     if (!confirmed) return;
 
     setProducts((prev) =>
       prev.filter(
-        (product) => product.id !== id
+        (product) =>
+          product.id !== id
       )
     );
   };
@@ -290,8 +425,10 @@ export default function ProductsPage() {
         </div>
 
         {/* FILTER */}
+
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
           {/* SEARCH */}
+
           <div className="relative w-full lg:max-w-[320px]">
             <Search
               size={15}
@@ -302,14 +439,17 @@ export default function ProductsPage() {
               type="text"
               value={search}
               onChange={(e) =>
-                setSearch(e.target.value)
+                setSearch(
+                  e.target.value
+                )
               }
               placeholder="Cari nama menu"
               className="h-[40px] w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-[11px] outline-none transition focus:border-red-400"
             />
           </div>
 
-          {/* DATE */}
+          {/* DATE FILTER */}
+
           <div className="relative">
             <button
               type="button"
@@ -320,13 +460,18 @@ export default function ProductsPage() {
               }
               className="flex h-[40px] min-w-[225px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 text-[11px] text-gray-600"
             >
-              <CalendarDays size={15} />
+              <CalendarDays
+                size={15}
+              />
 
               <span className="flex-1 text-left">
-                {startDate} - {endDate}
+                {startDate} -{" "}
+                {endDate}
               </span>
 
-              <ChevronDown size={13} />
+              <ChevronDown
+                size={13}
+              />
             </button>
 
             {showDateFilter && (
@@ -360,9 +505,11 @@ export default function ProductsPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowDateFilter(false)
+                    setShowDateFilter(
+                      false
+                    )
                   }
-                  className="mt-4 h-[34px] w-full rounded-lg bg-[#e63131] text-[10px] font-semibold text-white"
+                  className="mt-4 h-[34px] w-full rounded-lg bg-[#e63131] text-[10px] font-semibold text-white transition hover:bg-[#ca2929]"
                 >
                   Terapkan
                 </button>
@@ -375,22 +522,28 @@ export default function ProductsPage() {
             <select
               value={category}
               onChange={(e) =>
-                setCategory(e.target.value)
+                setCategory(
+                  e.target.value
+                )
               }
               className="h-[40px] min-w-[180px] appearance-none rounded-lg border border-gray-200 bg-white px-4 pr-9 text-[11px] outline-none"
             >
               <option value="Semua">
                 Semua kategori
               </option>
+
               <option value="Makanan">
                 Makanan
               </option>
+
               <option value="Minuman">
                 Minuman
               </option>
+
               <option value="Kopi">
                 Kopi
               </option>
+
               <option value="Snack">
                 Snack
               </option>
@@ -402,7 +555,8 @@ export default function ProductsPage() {
             />
           </div>
 
-          {/* ADD */}
+          {/* ADD BUTTON */}
+
           <button
             type="button"
             onClick={openAddModal}
@@ -445,7 +599,9 @@ export default function ProductsPage() {
                 {filteredProducts.map(
                   (product) => (
                     <tr
-                      key={product.id}
+                      key={
+                        product.id
+                      }
                       className="text-[11px] text-gray-700 transition hover:bg-gray-50"
                     >
                       <td className="border-b border-gray-100 px-4 py-2.5">
@@ -457,9 +613,10 @@ export default function ProductsPage() {
                             alt={
                               product.name
                             }
-                            width={36}
-                            height={36}
-                            className="h-[36px] w-[36px] rounded-lg object-cover"
+                            width={40}
+                            height={40}
+                            unoptimized
+                            className="h-[40px] w-[40px] rounded-lg object-cover"
                           />
 
                           <span className="font-medium text-gray-800">
@@ -472,7 +629,7 @@ export default function ProductsPage() {
 
                       <td className="border-b border-gray-100 px-4 py-2.5">
                         <span
-                          className={`inline-flex rounded-full px-3 py-1 text-[9px] font-medium ${categoryClass(
+                          className={`inline-flex min-w-[68px] justify-center rounded-full px-3 py-1 text-[9px] font-medium ${getCategoryClass(
                             product.category
                           )}`}
                         >
@@ -489,7 +646,9 @@ export default function ProductsPage() {
                       </td>
 
                       <td className="border-b border-gray-100 px-4 py-2.5">
-                        {product.stock}
+                        {
+                          product.stock
+                        }
                       </td>
 
                       <td className="border-b border-gray-100 px-4 py-2.5">
@@ -534,7 +693,8 @@ export default function ProductsPage() {
                       colSpan={5}
                       className="py-10 text-center text-[11px] text-gray-400"
                     >
-                      Menu tidak ditemukan.
+                      Menu tidak
+                      ditemukan.
                     </td>
                   </tr>
                 )}
@@ -544,35 +704,45 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      {/* ADD / EDIT MODAL */}
+      {/* =========================
+          ADD / EDIT MODAL
+      ========================== */}
+
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-[430px] rounded-xl bg-white p-5 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
+          <div className="w-full max-w-[530px] rounded-xl bg-white p-6 shadow-2xl">
+            {/* HEADER MODAL */}
+
+            <div className="mb-5 flex items-start justify-between">
               <div>
-                <h2 className="text-[16px] font-bold">
+                <h2 className="text-[18px] font-bold">
                   {editingId !== null
                     ? "Edit Menu"
                     : "Tambah Menu"}
                 </h2>
 
                 <p className="mt-1 text-[10px] text-gray-500">
-                  Lengkapi informasi menu.
+                  Lengkapi informasi
+                  menu.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() =>
-                  setShowModal(false)
+                  setShowModal(
+                    false
+                  )
                 }
-                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100"
+                className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
               >
-                <X size={17} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* NAME */}
+
               <div>
                 <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
                   Nama Menu
@@ -583,12 +753,16 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      name: e.target.value,
+                      name:
+                        e.target
+                          .value,
                     })
                   }
-                  className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
+                  className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
                 />
               </div>
+
+              {/* CATEGORY */}
 
               <div>
                 <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
@@ -596,7 +770,9 @@ export default function ProductsPage() {
                 </label>
 
                 <select
-                  value={form.category}
+                  value={
+                    form.category
+                  }
                   onChange={(e) =>
                     setForm({
                       ...form,
@@ -605,24 +781,29 @@ export default function ProductsPage() {
                           .value as ProductCategory,
                     })
                   }
-                  className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none"
+                  className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
                 >
                   <option value="Makanan">
                     Makanan
                   </option>
+
                   <option value="Minuman">
                     Minuman
                   </option>
+
                   <option value="Kopi">
                     Kopi
                   </option>
+
                   <option value="Snack">
                     Snack
                   </option>
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* PRICE STOCK */}
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
                     Harga
@@ -630,15 +811,19 @@ export default function ProductsPage() {
 
                   <input
                     type="number"
-                    value={form.price}
+                    min="0"
+                    value={
+                      form.price
+                    }
                     onChange={(e) =>
                       setForm({
                         ...form,
                         price:
-                          e.target.value,
+                          e.target
+                            .value,
                       })
                     }
-                    className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
+                    className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
                   />
                 </div>
 
@@ -649,70 +834,131 @@ export default function ProductsPage() {
 
                   <input
                     type="number"
-                    value={form.stock}
+                    min="0"
+                    value={
+                      form.stock
+                    }
                     onChange={(e) =>
                       setForm({
                         ...form,
                         stock:
-                          e.target.value,
+                          e.target
+                            .value,
                       })
                     }
-                    className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
+                    className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
                   />
                 </div>
               </div>
 
+              {/* =================
+                  IMAGE UPLOAD
+              ================= */}
+
               <div>
                 <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
-                  Gambar
+                  Gambar Menu
                 </label>
 
-                <select
-                  value={form.image}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      image: e.target.value,
-                    })
-                  }
-                  className="h-[38px] w-full rounded-lg border border-gray-200 px-3 text-[11px]"
-                >
-                  <option value="/images/menu/bakmi-jaya.jpg">
-                    Bakmi
-                  </option>
-                  <option value="/images/menu/kopi-susu.jpg">
-                    Kopi Susu
-                  </option>
-                  <option value="/images/menu/nasi-goreng.jpg">
-                    Nasi Goreng
-                  </option>
-                  <option value="/images/menu/mie-goreng.jpg">
-                    Mie Goreng
-                  </option>
-                  <option value="/images/menu/milkshake-mango.jpg">
-                    Milkshake
-                  </option>
-                </select>
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-[10px] font-medium text-gray-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-500">
+                  <Upload size={16} />
+
+                  {form.image
+                    ? "Ganti Gambar"
+                    : "Upload Gambar Menu"}
+
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={
+                      handleImageUpload
+                    }
+                    className="hidden"
+                  />
+                </label>
+
+                <p className="mt-1.5 text-[8px] text-gray-400">
+                  JPG, PNG atau WEBP.
+                  Maksimal 2 MB.
+                </p>
+
+                {/* PREVIEW */}
+
+                {form.image ? (
+                  <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <p className="mb-2 text-[9px] font-medium text-gray-500">
+                      Preview Gambar
+                    </p>
+
+                    <div className="flex items-center gap-3">
+                      <Image
+                        src={
+                          form.image
+                        }
+                        alt="Preview menu"
+                        width={80}
+                        height={80}
+                        unoptimized
+                        className="h-[80px] w-[80px] rounded-lg object-cover"
+                      />
+
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-700">
+                          Gambar siap
+                          digunakan
+                        </p>
+
+                        <p className="mt-1 text-[8px] text-gray-400">
+                          Klik Ganti
+                          Gambar jika
+                          ingin memilih
+                          foto lain.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex h-[90px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+                    <div className="text-center text-gray-400">
+                      <ImagePlus
+                        size={22}
+                        className="mx-auto"
+                      />
+
+                      <p className="mt-2 text-[9px]">
+                        Belum ada gambar
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="mt-5 flex justify-end gap-2">
+            {/* BUTTON */}
+
+            <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() =>
-                  setShowModal(false)
+                  setShowModal(
+                    false
+                  )
                 }
-                className="h-[38px] rounded-lg border border-gray-200 px-4 text-[11px] font-medium text-gray-600 hover:bg-gray-50"
+                className="h-[40px] rounded-lg border border-gray-200 px-5 text-[11px] font-medium text-gray-600 transition hover:bg-gray-50"
               >
                 Batalkan
               </button>
 
               <button
                 type="button"
-                onClick={handleSave}
-                className="h-[38px] rounded-lg bg-[#e63131] px-4 text-[11px] font-semibold text-white hover:bg-[#ca2929]"
+                onClick={
+                  handleSave
+                }
+                className="h-[40px] rounded-lg bg-[#e63131] px-5 text-[11px] font-semibold text-white transition hover:bg-[#ca2929]"
               >
-                Simpan
+                {editingId !== null
+                  ? "Simpan Perubahan"
+                  : "Simpan"}
               </button>
             </div>
           </div>
