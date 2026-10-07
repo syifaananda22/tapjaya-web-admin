@@ -18,12 +18,8 @@ import StatCard from "@/components/StatCard";
 
 import {
   bestMenus,
-  categoryData,
   latestOrders,
-  revenueData,
 } from "@/data/dashboard";
-
-import type { Period } from "@/data/dashboard";
 
 import {
   CartesianGrid,
@@ -38,24 +34,437 @@ import {
   YAxis,
 } from "recharts";
 
+/* =========================
+   TYPE
+========================= */
+
+type DashboardPeriod =
+  | "day"
+  | "week"
+  | "month"
+  | "sixMonths"
+  | "year";
+
+/* =========================
+   DASHBOARD DATA
+========================= */
+
+const dashboardData = {
+  day: {
+    label: "1 Hari",
+
+    totalRevenue: 1850000,
+    totalOrders: 57,
+    completedOrders: 51,
+    lowStock: 8,
+
+    revenueGrowth: 18,
+    orderGrowth: 14,
+    completedGrowth: 7,
+
+    comparison: "dari kemarin",
+
+    chart: [
+      {
+        label: "08:00",
+        income: 120000,
+      },
+      {
+        label: "09:00",
+        income: 180000,
+      },
+      {
+        label: "10:00",
+        income: 220000,
+      },
+      {
+        label: "11:00",
+        income: 310000,
+      },
+      {
+        label: "12:00",
+        income: 390000,
+      },
+      {
+        label: "13:00",
+        income: 280000,
+      },
+      {
+        label: "14:00",
+        income: 350000,
+      },
+    ],
+
+    categories: [
+      {
+        name: "Makanan",
+        value: 42.2,
+      },
+      {
+        name: "Minuman",
+        value: 28.1,
+      },
+      {
+        name: "Kopi",
+        value: 18.8,
+      },
+      {
+        name: "Snack",
+        value: 10.9,
+      },
+    ],
+  },
+
+  week: {
+    label: "1 Minggu",
+
+    totalRevenue: 12540000,
+    totalOrders: 384,
+    completedOrders: 351,
+    lowStock: 8,
+
+    revenueGrowth: 18,
+    orderGrowth: 14,
+    completedGrowth: 7,
+
+    comparison: "dari minggu lalu",
+
+    chart: [
+      {
+        label: "Sen",
+        income: 1450000,
+      },
+      {
+        label: "Sel",
+        income: 1720000,
+      },
+      {
+        label: "Rab",
+        income: 1580000,
+      },
+      {
+        label: "Kam",
+        income: 1940000,
+      },
+      {
+        label: "Jum",
+        income: 2100000,
+      },
+      {
+        label: "Sab",
+        income: 2280000,
+      },
+      {
+        label: "Min",
+        income: 1470000,
+      },
+    ],
+
+    categories: [
+      {
+        name: "Makanan",
+        value: 43.5,
+      },
+      {
+        name: "Minuman",
+        value: 26.5,
+      },
+      {
+        name: "Kopi",
+        value: 19,
+      },
+      {
+        name: "Snack",
+        value: 11,
+      },
+    ],
+  },
+
+  month: {
+    label: "1 Bulan",
+
+    totalRevenue: 48540000,
+    totalOrders: 1487,
+    completedOrders: 1362,
+    lowStock: 8,
+
+    revenueGrowth: 18,
+    orderGrowth: 14,
+    completedGrowth: 7,
+
+    comparison: "dari bulan lalu",
+
+    chart: [
+      {
+        label: "2 Sep",
+        income: 520000,
+      },
+      {
+        label: "5 Sep",
+        income: 780000,
+      },
+      {
+        label: "8 Sep",
+        income: 1120000,
+      },
+      {
+        label: "11 Sep",
+        income: 960000,
+      },
+      {
+        label: "14 Sep",
+        income: 1280000,
+      },
+      {
+        label: "17 Sep",
+        income: 1680000,
+      },
+      {
+        label: "20 Sep",
+        income: 1140000,
+      },
+      {
+        label: "23 Sep",
+        income: 1390000,
+      },
+      {
+        label: "26 Sep",
+        income: 1720000,
+      },
+      {
+        label: "29 Sep",
+        income: 1160000,
+      },
+      {
+        label: "2 Okt",
+        income: 960000,
+      },
+    ],
+
+    categories: [
+      {
+        name: "Makanan",
+        value: 42.2,
+      },
+      {
+        name: "Minuman",
+        value: 28.1,
+      },
+      {
+        name: "Kopi",
+        value: 18.8,
+      },
+      {
+        name: "Snack",
+        value: 10.9,
+      },
+    ],
+  },
+
+  sixMonths: {
+    label: "6 Bulan",
+
+    totalRevenue: 276300000,
+    totalOrders: 8524,
+    completedOrders: 7837,
+    lowStock: 8,
+
+    revenueGrowth: 18,
+    orderGrowth: 14,
+    completedGrowth: 7,
+
+    comparison:
+      "dari 6 bulan sebelumnya",
+
+    chart: [
+      {
+        label: "Mei",
+        income: 38500000,
+      },
+      {
+        label: "Jun",
+        income: 41900000,
+      },
+      {
+        label: "Jul",
+        income: 43700000,
+      },
+      {
+        label: "Agu",
+        income: 46900000,
+      },
+      {
+        label: "Sep",
+        income: 48540000,
+      },
+      {
+        label: "Okt",
+        income: 56760000,
+      },
+    ],
+
+    categories: [
+      {
+        name: "Makanan",
+        value: 44,
+      },
+      {
+        name: "Minuman",
+        value: 27,
+      },
+      {
+        name: "Kopi",
+        value: 18,
+      },
+      {
+        name: "Snack",
+        value: 11,
+      },
+    ],
+  },
+
+  year: {
+    label: "1 Tahun",
+
+    totalRevenue: 548900000,
+    totalOrders: 16870,
+    completedOrders: 15491,
+    lowStock: 8,
+
+    revenueGrowth: 18,
+    orderGrowth: 14,
+    completedGrowth: 7,
+
+    comparison: "dari tahun lalu",
+
+    chart: [
+      {
+        label: "Jan",
+        income: 38000000,
+      },
+      {
+        label: "Feb",
+        income: 40500000,
+      },
+      {
+        label: "Mar",
+        income: 42100000,
+      },
+      {
+        label: "Apr",
+        income: 43900000,
+      },
+      {
+        label: "Mei",
+        income: 45500000,
+      },
+      {
+        label: "Jun",
+        income: 46200000,
+      },
+      {
+        label: "Jul",
+        income: 47100000,
+      },
+      {
+        label: "Agu",
+        income: 48300000,
+      },
+      {
+        label: "Sep",
+        income: 49500000,
+      },
+      {
+        label: "Okt",
+        income: 51000000,
+      },
+      {
+        label: "Nov",
+        income: 53300000,
+      },
+      {
+        label: "Des",
+        income: 63400000,
+      },
+    ],
+
+    categories: [
+      {
+        name: "Makanan",
+        value: 43,
+      },
+      {
+        name: "Minuman",
+        value: 27.5,
+      },
+      {
+        name: "Kopi",
+        value: 18.5,
+      },
+      {
+        name: "Snack",
+        value: 11,
+      },
+    ],
+  },
+};
+
+/* =========================
+   PERIOD OPTIONS
+========================= */
+
+const periodOptions: {
+  value: DashboardPeriod;
+  label: string;
+}[] = [
+  {
+    value: "day",
+    label: "1 Hari",
+  },
+  {
+    value: "week",
+    label: "1 Minggu",
+  },
+  {
+    value: "month",
+    label: "1 Bulan",
+  },
+  {
+    value: "sixMonths",
+    label: "6 Bulan",
+  },
+  {
+    value: "year",
+    label: "1 Tahun",
+  },
+];
+
+/* =========================
+   PAGE
+========================= */
+
 export default function DashboardPage() {
-  const [revenuePeriod, setRevenuePeriod] =
-    useState<Period>("7hari");
+  /*
+   * Default = 1 Bulan.
+   *
+   * Kalau mau default 1 Hari:
+   * useState<DashboardPeriod>("day")
+   */
 
-  const [categoryPeriod, setCategoryPeriod] =
-    useState<Period>("7hari");
+  const [period, setPeriod] =
+    useState<DashboardPeriod>("month");
 
-  const [showDateFilter, setShowDateFilter] =
-    useState(false);
+  const [
+    showPeriodFilter,
+    setShowPeriodFilter,
+  ] = useState(false);
 
-  const [selectedQuickPeriod, setSelectedQuickPeriod] =
-    useState("7hari");
+  const data =
+    dashboardData[period];
 
-  const [startDate, setStartDate] =
-    useState("2026-10-21");
-
-  const [endDate, setEndDate] =
-    useState("2026-10-26");
+  /* =========================
+     PIE COLORS
+  ========================= */
 
   const pieColors = [
     "#00b96b",
@@ -64,187 +473,174 @@ export default function DashboardPage() {
     "#ff7a1a",
   ];
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(value);
+  /* =========================
+     CURRENCY
+  ========================= */
 
-  const statusStyle = (status: string) => {
+  const formatCurrency = (
+    value: number
+  ) =>
+    new Intl.NumberFormat(
+      "id-ID",
+      {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits:
+          0,
+      }
+    ).format(value);
+
+  /* =========================
+     STATUS
+  ========================= */
+
+  const statusStyle = (
+    status: string
+  ) => {
     switch (status) {
       case "Selesai":
         return "bg-green-100 text-green-600";
+
       case "Siap":
         return "bg-emerald-100 text-emerald-600";
+
       case "Diproses":
         return "bg-blue-100 text-blue-600";
+
       default:
         return "bg-yellow-100 text-yellow-600";
     }
   };
 
-  const handleQuickPeriod = (
-    period: string
-  ) => {
-    setSelectedQuickPeriod(period);
-
-    const today = new Date("2026-10-26");
-    const start = new Date(today);
-
-    if (period === "7hari") {
-      start.setDate(today.getDate() - 6);
-    }
-
-    if (period === "30hari") {
-      start.setDate(today.getDate() - 29);
-    }
-
-    if (period === "6bulan") {
-      start.setMonth(today.getMonth() - 6);
-    }
-
-    if (period === "1tahun") {
-      start.setFullYear(
-        today.getFullYear() - 1
-      );
-    }
-
-    const formatDate = (date: Date) =>
-      date.toISOString().split("T")[0];
-
-    setStartDate(formatDate(start));
-    setEndDate(formatDate(today));
-  };
-
   return (
     <main className="flex min-h-screen bg-[#f5f5f5]">
+      {/* =========================
+          SIDEBAR
+      ========================== */}
+
       <Sidebar />
 
+      {/* =========================
+          CONTENT
+      ========================== */}
+
       <section className="min-w-0 flex-1 p-4 lg:p-5">
-        {/* HEADER */}
-        <div className="mb-3 rounded-xl bg-white px-5 py-4 shadow-sm">
+        {/* ======================
+            HEADER
+        ======================= */}
+
+        <div className="mb-4 rounded-xl bg-white px-5 py-4 shadow-sm">
           <AdminHeader
             title="Dashboard"
             subtitle="Selamat datang, Admin! Berikut ringkasan operasional caffe Anda."
           />
         </div>
 
-        {/* GLOBAL DATE */}
-        <div className="relative mb-3 flex justify-end">
+        {/* ======================
+            PERIOD FILTER
+        ======================= */}
+
+        <div className="relative mb-4 flex justify-end">
+          {/* BUTTON */}
+
           <button
             type="button"
             onClick={() =>
-              setShowDateFilter(
-                !showDateFilter
+              setShowPeriodFilter(
+                (prev) => !prev
               )
             }
-            className="flex h-[36px] items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-[10px] text-gray-600 shadow-sm transition hover:bg-gray-50"
+            className="flex h-[40px] min-w-[210px] items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 text-[10px] font-medium text-gray-600 shadow-sm transition hover:border-gray-300 hover:bg-gray-50"
           >
-            {startDate} - {endDate}
-            <ChevronDown size={13} />
+            <span>
+              {data.label}
+            </span>
+
+            <ChevronDown
+              size={14}
+              className={`transition-transform duration-200 ${
+                showPeriodFilter
+                  ? "rotate-180"
+                  : ""
+              }`}
+            />
           </button>
 
-          {showDateFilter && (
-            <div className="absolute right-0 top-10 z-50 w-[290px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
-              <p className="mb-3 text-[12px] font-bold">
+          {/* DROPDOWN */}
+
+          {showPeriodFilter && (
+            <div className="absolute right-0 top-[47px] z-50 w-[310px] rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+              <p className="mb-1 text-[12px] font-bold text-gray-800">
                 Pilih Periode
               </p>
 
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  [
-                    "7hari",
-                    "7 Hari Terakhir",
-                  ],
-                  [
-                    "30hari",
-                    "30 Hari Terakhir",
-                  ],
-                  [
-                    "6bulan",
-                    "6 Bulan Terakhir",
-                  ],
-                  [
-                    "1tahun",
-                    "1 Tahun Terakhir",
-                  ],
-                ].map(([value, label]) => (
-                  <button
-                    type="button"
-                    key={value}
-                    onClick={() =>
-                      handleQuickPeriod(
-                        value
-                      )
-                    }
-                    className={`rounded-lg border px-3 py-2 text-[10px] transition ${
-                      selectedQuickPeriod ===
-                      value
-                        ? "border-red-400 bg-red-50 font-semibold text-red-500"
-                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="my-4 border-t" />
-
-              <p className="mb-2 text-[10px] font-semibold text-gray-600">
-                Pilih Tanggal Manual
+              <p className="mb-4 text-[9px] text-gray-400">
+                Pilih rentang waktu
+                untuk menampilkan
+                data dashboard.
               </p>
 
-              <div className="space-y-2">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(
-                      e.target.value
-                    );
-                    setSelectedQuickPeriod(
-                      "custom"
-                    );
-                  }}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] outline-none focus:border-red-400"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                {periodOptions.map(
+                  (item) => {
+                    const active =
+                      period ===
+                      item.value;
 
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(
-                      e.target.value
+                    return (
+                      <button
+                        key={
+                          item.value
+                        }
+                        type="button"
+                        onClick={() => {
+                          setPeriod(
+                            item.value
+                          );
+
+                          setShowPeriodFilter(
+                            false
+                          );
+                        }}
+                        className={`h-[38px] rounded-lg border text-[10px] font-medium transition-all ${
+                          active
+                            ? "border-[#e63131] bg-red-50 font-semibold text-[#e63131]"
+                            : "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                        }`}
+                      >
+                        {
+                          item.label
+                        }
+                      </button>
                     );
-                    setSelectedQuickPeriod(
-                      "custom"
-                    );
-                  }}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px] outline-none focus:border-red-400"
-                />
+                  }
+                )}
               </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setShowDateFilter(false)
-                }
-                className="mt-4 h-[34px] w-full rounded-lg bg-[#e63131] text-[10px] font-semibold text-white"
-              >
-                Terapkan
-              </button>
+              {/* 1 TAHUN FULL WIDTH */}
+
+              {/*
+                Karena jumlah periodenya 5,
+                tombol 1 Tahun otomatis ada
+                di kiri baris terakhir.
+              */}
             </div>
           )}
         </div>
 
-        {/* STATISTICS */}
+        {/* ======================
+            STATISTICS
+        ======================= */}
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {/* TOTAL PESANAN */}
+
           <StatCard
             title="Total Pesanan"
-            value="124"
-            description="↑ 12% dari kemarin"
+            value={data.totalOrders.toLocaleString(
+              "id-ID"
+            )}
+            description={`↑ ${data.orderGrowth}% ${data.comparison}`}
             icon={
               <div className="rounded-lg bg-red-50 p-2">
                 <ClipboardList
@@ -255,10 +651,14 @@ export default function DashboardPage() {
             }
           />
 
+          {/* TOTAL PENDAPATAN */}
+
           <StatCard
             title="Total Pendapatan"
-            value="Rp 4.540.000"
-            description="↑ 10% dari kemarin"
+            value={formatCurrency(
+              data.totalRevenue
+            )}
+            description={`↑ ${data.revenueGrowth}% ${data.comparison}`}
             icon={
               <div className="rounded-lg bg-green-50 p-2">
                 <Banknote
@@ -269,10 +669,14 @@ export default function DashboardPage() {
             }
           />
 
+          {/* PESANAN SELESAI */}
+
           <StatCard
             title="Pesanan Selesai"
-            value="112"
-            description="↑ 2% dari kemarin"
+            value={data.completedOrders.toLocaleString(
+              "id-ID"
+            )}
+            description={`↑ ${data.completedGrowth}% ${data.comparison}`}
             icon={
               <div className="rounded-lg bg-blue-50 p-2">
                 <CheckCircle2
@@ -283,9 +687,13 @@ export default function DashboardPage() {
             }
           />
 
+          {/* STOCK */}
+
           <StatCard
             title="Stock Menipis"
-            value="8"
+            value={String(
+              data.lowStock
+            )}
             description="Lihat Detail"
             descriptionClassName="text-blue-500"
             icon={
@@ -299,55 +707,59 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* CHART */}
-        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_1fr]">
-          {/* REVENUE */}
+        {/* ======================
+            CHART + CATEGORY
+        ======================= */}
+
+        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[1.35fr_0.85fr]">
+          {/* =================
+              REVENUE CHART
+          ================== */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[13px] font-bold">
-                Grafik Pendapatan
-              </h2>
+              <div>
+                <h2 className="text-[13px] font-bold">
+                  Grafik
+                  Pendapatan
+                </h2>
 
-              <select
-                value={revenuePeriod}
-                onChange={(e) =>
-                  setRevenuePeriod(
-                    e.target
-                      .value as Period
-                  )
-                }
-                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[10px]"
-              >
-                <option value="7hari">
-                  7 Hari Terakhir
-                </option>
-                <option value="1bulan">
-                  1 Bulan
-                </option>
-                <option value="6bulan">
-                  6 Bulan
-                </option>
-                <option value="1tahun">
-                  1 Tahun
-                </option>
-              </select>
+                <p className="mt-1 text-[9px] text-gray-400">
+                  Data periode{" "}
+                  {data.label}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+
+                <span className="text-[9px] text-gray-500">
+                  Pendapatan
+                </span>
+              </div>
             </div>
 
-            <div className="h-[195px]">
+            <div className="h-[240px]">
               <ResponsiveContainer
                 width="100%"
                 height="100%"
               >
                 <LineChart
                   data={
-                    revenueData[
-                      revenuePeriod
-                    ]
+                    data.chart
                   }
+                  margin={{
+                    top: 10,
+                    right: 15,
+                    left: 5,
+                    bottom: 0,
+                  }}
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    vertical={false}
+                    vertical={
+                      false
+                    }
                     stroke="#eeeeee"
                   />
 
@@ -356,29 +768,92 @@ export default function DashboardPage() {
                     tick={{
                       fontSize: 9,
                     }}
-                    axisLine={false}
-                    tickLine={false}
+                    axisLine={
+                      false
+                    }
+                    tickLine={
+                      false
+                    }
                   />
 
                   <YAxis
                     tick={{
                       fontSize: 8,
                     }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={60}
+                    axisLine={
+                      false
+                    }
+                    tickLine={
+                      false
+                    }
+                    width={65}
+                    tickFormatter={(
+                      value
+                    ) => {
+                      if (
+                        value >=
+                        1000000
+                      ) {
+                        return `${(
+                          value /
+                          1000000
+                        ).toFixed(
+                          0
+                        )}jt`;
+                      }
+
+                      return `${Math.round(
+                        value /
+                          1000
+                      )}rb`;
+                    }}
                   />
 
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(
+                      value
+                    ) => [
+                      formatCurrency(
+                        Number(
+                          value
+                        )
+                      ),
+                      "Pendapatan",
+                    ]}
+                    labelStyle={{
+                      fontSize:
+                        "10px",
+                      fontWeight:
+                        600,
+                    }}
+                    contentStyle={{
+                      borderRadius:
+                        "8px",
+                      border:
+                        "1px solid #eeeeee",
+                      fontSize:
+                        "10px",
+                    }}
+                  />
 
                   <Line
                     type="monotone"
                     dataKey="income"
                     stroke="#ef4444"
-                    strokeWidth={2}
+                    strokeWidth={
+                      2.5
+                    }
+                    activeDot={{
+                      r: 6,
+                    }}
                     dot={{
-                      r: 3,
-                      fill: "#ef4444",
+                      r: 4,
+                      fill:
+                        "#ffffff",
+                      stroke:
+                        "#ef4444",
+                      strokeWidth:
+                        2,
                     }}
                   />
                 </LineChart>
@@ -386,40 +861,27 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* CATEGORY */}
+          {/* =================
+              CATEGORY
+          ================== */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3">
               <h2 className="text-[13px] font-bold">
-                Kategori Menu Terlaris
+                Kategori Menu
+                Terlaris
               </h2>
 
-              <select
-                value={categoryPeriod}
-                onChange={(e) =>
-                  setCategoryPeriod(
-                    e.target
-                      .value as Period
-                  )
-                }
-                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[10px]"
-              >
-                <option value="7hari">
-                  7 Hari Terakhir
-                </option>
-                <option value="1bulan">
-                  1 Bulan
-                </option>
-                <option value="6bulan">
-                  6 Bulan
-                </option>
-                <option value="1tahun">
-                  1 Tahun
-                </option>
-              </select>
+              <p className="mt-1 text-[9px] text-gray-400">
+                Data periode{" "}
+                {data.label}
+              </p>
             </div>
 
-            <div className="flex min-h-[195px] items-center justify-center">
-              <div className="h-[150px] w-[150px]">
+            <div className="flex min-h-[240px] items-center justify-center">
+              {/* PIE */}
+
+              <div className="h-[165px] w-[165px]">
                 <ResponsiveContainer
                   width="100%"
                   height="100%"
@@ -427,17 +889,20 @@ export default function DashboardPage() {
                   <PieChart>
                     <Pie
                       data={
-                        categoryData[
-                          categoryPeriod
-                        ]
+                        data.categories
                       }
-                      innerRadius={40}
-                      outerRadius={64}
+                      innerRadius={
+                        45
+                      }
+                      outerRadius={
+                        70
+                      }
+                      paddingAngle={
+                        2
+                      }
                       dataKey="value"
                     >
-                      {categoryData[
-                        categoryPeriod
-                      ].map(
+                      {data.categories.map(
                         (
                           item,
                           index
@@ -455,17 +920,31 @@ export default function DashboardPage() {
                         )
                       )}
                     </Pie>
+
+                    <Tooltip
+                      formatter={(
+                        value
+                      ) => [
+                        `${value}%`,
+                        "Persentase",
+                      ]}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
 
+              {/* LEGEND */}
+
               <div className="ml-5 space-y-3">
-                {categoryData[
-                  categoryPeriod
-                ].map(
-                  (item, index) => (
+                {data.categories.map(
+                  (
+                    item,
+                    index
+                  ) => (
                     <div
-                      key={item.name}
+                      key={
+                        item.name
+                      }
                       className="flex min-w-[145px] justify-between gap-5 text-[10px]"
                     >
                       <div className="flex items-center gap-2">
@@ -479,11 +958,16 @@ export default function DashboardPage() {
                           }}
                         />
 
-                        {item.name}
+                        {
+                          item.name
+                        }
                       </div>
 
                       <strong>
-                        {item.value}%
+                        {
+                          item.value
+                        }
+                        %
                       </strong>
                     </div>
                   )
@@ -493,12 +977,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* TABLES */}
+        {/* ======================
+            TABLE
+        ======================= */}
+
         <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-          {/* BEST MENU */}
+          {/* =================
+              BEST MENU
+          ================== */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-[14px] font-bold text-black">
-              Menu Terlaris Hari Ini
+              Menu Terlaris{" "}
+              {data.label}
             </h2>
 
             <div className="overflow-x-auto">
@@ -525,13 +1016,19 @@ export default function DashboardPage() {
 
                 <tbody>
                   {bestMenus.map(
-                    (menu, index) => (
+                    (
+                      menu,
+                      index
+                    ) => (
                       <tr
-                        key={menu.id}
+                        key={
+                          menu.id
+                        }
                         className="text-[11px] text-gray-700 transition hover:bg-gray-50"
                       >
                         <td className="border-b border-gray-100 px-3 py-2.5">
-                          {index + 1}
+                          {index +
+                            1}
                         </td>
 
                         <td className="border-b border-gray-100 px-3 py-2.5">
@@ -561,7 +1058,9 @@ export default function DashboardPage() {
                         </td>
 
                         <td className="border-b border-gray-100 px-3 py-2.5">
-                          {menu.sold}
+                          {
+                            menu.sold
+                          }
                         </td>
 
                         <td className="border-b border-gray-100 px-3 py-2.5 font-medium">
@@ -577,7 +1076,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* LATEST */}
+          {/* =================
+              LATEST ORDERS
+          ================== */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-[14px] font-bold text-black">
@@ -622,15 +1124,21 @@ export default function DashboardPage() {
                   {latestOrders.map(
                     (order) => (
                       <tr
-                        key={order.id}
+                        key={
+                          order.id
+                        }
                         className="text-[11px] text-gray-700 transition hover:bg-gray-50"
                       >
                         <td className="border-b border-gray-100 px-3 py-2.5">
-                          {order.id}
+                          {
+                            order.id
+                          }
                         </td>
 
                         <td className="border-b border-gray-100 px-3 py-2.5">
-                          {order.time}
+                          {
+                            order.time
+                          }
                         </td>
 
                         <td className="border-b border-gray-100 px-3 py-2.5">

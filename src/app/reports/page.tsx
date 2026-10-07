@@ -1,51 +1,57 @@
+
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import "./reports.css";
+import { useState } from "react";
+import Image from "next/image";
 
-type Period = "today" | "week" | "month" | "sixMonths" | "year";
+import {
+  Banknote,
+  ClipboardList,
+  TrendingUp,
+} from "lucide-react";
 
-type ChartPoint = {
-  label: string;
-  revenue: number;
-  orders: number;
-};
+import Sidebar from "@/components/Sidebar";
+import AdminHeader from "@/components/AdminHeader";
 
-type CategoryData = {
-  name: string;
-  percentage: number;
-  className: "food" | "drink" | "snack";
-};
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-type PeriodData = {
+type Period =
+  | "today"
+  | "week"
+  | "month"
+  | "sixMonths"
+  | "year";
+
+type ReportData = {
   totalRevenue: number;
   totalOrders: number;
-  growthRevenue: number;
-  growthOrders: number;
-  growthAverage: number;
-  comparisonText: string;
-  chart: ChartPoint[];
-  categories: CategoryData[];
+  averageOrder: number;
+  comparison: string;
+  chart: {
+    label: string;
+    revenue: number;
+    orders: number;
+  }[];
 };
 
-type MenuItem = {
-  no: number;
-  name: string;
-  sold: number;
-  revenue: number;
-  image: string;
-};
-
-const reportData: Record<Period, PeriodData> = {
+const reportData: Record<Period, ReportData> = {
   today: {
     totalRevenue: 1850000,
     totalOrders: 57,
-    growthRevenue: 8,
-    growthOrders: 5,
-    growthAverage: 3,
-    comparisonText: "dari kemarin",
-
+    averageOrder: 32456,
+    comparison: "dari kemarin",
     chart: [
       { label: "08:00", revenue: 120000, orders: 4 },
       { label: "09:00", revenue: 180000, orders: 6 },
@@ -55,22 +61,13 @@ const reportData: Record<Period, PeriodData> = {
       { label: "13:00", revenue: 280000, orders: 8 },
       { label: "14:00", revenue: 350000, orders: 10 },
     ],
-
-    categories: [
-      { name: "Makanan", percentage: 46.2, className: "food" },
-      { name: "Minuman", percentage: 34.1, className: "drink" },
-      { name: "Snack", percentage: 19.7, className: "snack" },
-    ],
   },
 
   week: {
     totalRevenue: 12540000,
     totalOrders: 384,
-    growthRevenue: 15,
-    growthOrders: 12,
-    growthAverage: 5,
-    comparisonText: "dari minggu lalu",
-
+    averageOrder: 32656,
+    comparison: "dari minggu lalu",
     chart: [
       { label: "Sen", revenue: 1450000, orders: 44 },
       { label: "Sel", revenue: 1720000, orders: 51 },
@@ -80,22 +77,13 @@ const reportData: Record<Period, PeriodData> = {
       { label: "Sab", revenue: 2280000, orders: 68 },
       { label: "Min", revenue: 1470000, orders: 51 },
     ],
-
-    categories: [
-      { name: "Makanan", percentage: 42.2, className: "food" },
-      { name: "Minuman", percentage: 28.1, className: "drink" },
-      { name: "Snack", percentage: 18.8, className: "snack" },
-    ],
   },
 
   month: {
     totalRevenue: 48540000,
     totalOrders: 1487,
-    growthRevenue: 18,
-    growthOrders: 14,
-    growthAverage: 7,
-    comparisonText: "dari bulan lalu",
-
+    averageOrder: 32643,
+    comparison: "dari bulan lalu",
     chart: [
       { label: "2 Sep", revenue: 520000, orders: 22 },
       { label: "5 Sep", revenue: 780000, orders: 31 },
@@ -109,22 +97,13 @@ const reportData: Record<Period, PeriodData> = {
       { label: "29 Sep", revenue: 1160000, orders: 45 },
       { label: "2 Okt", revenue: 960000, orders: 39 },
     ],
-
-    categories: [
-      { name: "Makanan", percentage: 42.2, className: "food" },
-      { name: "Minuman", percentage: 28.1, className: "drink" },
-      { name: "Snack", percentage: 18.8, className: "snack" },
-    ],
   },
 
   sixMonths: {
     totalRevenue: 276300000,
     totalOrders: 8524,
-    growthRevenue: 24,
-    growthOrders: 19,
-    growthAverage: 9,
-    comparisonText: "dari 6 bulan sebelumnya",
-
+    averageOrder: 32414,
+    comparison: "dari 6 bulan sebelumnya",
     chart: [
       { label: "Mei", revenue: 38500000, orders: 1180 },
       { label: "Jun", revenue: 41900000, orders: 1290 },
@@ -133,22 +112,13 @@ const reportData: Record<Period, PeriodData> = {
       { label: "Sep", revenue: 48540000, orders: 1512 },
       { label: "Okt", revenue: 56760000, orders: 1734 },
     ],
-
-    categories: [
-      { name: "Makanan", percentage: 44.5, className: "food" },
-      { name: "Minuman", percentage: 32.4, className: "drink" },
-      { name: "Snack", percentage: 23.1, className: "snack" },
-    ],
   },
 
   year: {
     totalRevenue: 548900000,
     totalOrders: 16870,
-    growthRevenue: 31,
-    growthOrders: 22,
-    growthAverage: 11,
-    comparisonText: "dari tahun lalu",
-
+    averageOrder: 32537,
+    comparison: "dari tahun lalu",
     chart: [
       { label: "Jan", revenue: 38000000, orders: 1160 },
       { label: "Feb", revenue: 40500000, orders: 1240 },
@@ -163,470 +133,91 @@ const reportData: Record<Period, PeriodData> = {
       { label: "Nov", revenue: 53300000, orders: 1640 },
       { label: "Des", revenue: 63400000, orders: 2343 },
     ],
-
-    categories: [
-      { name: "Makanan", percentage: 45.1, className: "food" },
-      { name: "Minuman", percentage: 31.7, className: "drink" },
-      { name: "Snack", percentage: 23.2, className: "snack" },
-    ],
   },
 };
 
-const bestMenus: MenuItem[] = [
+const bestMenus = [
   {
-    no: 1,
+    id: 1,
     name: "Bakmi Jaya",
     sold: 36,
     revenue: 1083000,
     image: "/images/menu/bakmi-jaya.jpg",
   },
   {
-    no: 2,
+    id: 2,
     name: "Kopi Susu Berjaya",
     sold: 32,
     revenue: 795600,
     image: "/images/menu/kopi-susu.jpg",
   },
   {
-    no: 3,
+    id: 3,
     name: "Nasi Goreng Jawa",
     sold: 28,
     revenue: 591600,
     image: "/images/menu/nasi-goreng.jpg",
   },
   {
-    no: 4,
+    id: 4,
     name: "Mie Goreng Jawa",
     sold: 24,
     revenue: 581600,
     image: "/images/menu/mie-goreng.jpg",
   },
   {
-    no: 5,
+    id: 5,
     name: "Milkshake Mango",
     sold: 20,
     revenue: 491600,
     image: "/images/menu/milkshake-mango.jpg",
   },
+];
+
+const categories = [
   {
-    no: 6,
-    name: "Cireng",
-    sold: 18,
-    revenue: 277200,
-    image: "/images/menu/cireng.jpg",
+    name: "Makanan",
+    value: 42.2,
   },
   {
-    no: 7,
-    name: "Kopi Hitam",
-    sold: 16,
-    revenue: 361600,
-    image: "/images/menu/kopi-susu.jpg",
+    name: "Minuman",
+    value: 28.1,
   },
   {
-    no: 8,
-    name: "Salted Caramel Macchiato",
-    sold: 14,
-    revenue: 630000,
-    image: "/images/menu/salted caramel.jpg",
+    name: "Kopi",
+    value: 18.8,
   },
   {
-    no: 9,
-    name: "Greentea Jasmine",
-    sold: 12,
-    revenue: 270540,
-    image: "/images/menu/greentea.jpg",
-  },
-  {
-    no: 10,
-    name: "Triple Egg Fried Rice",
-    sold: 10,
-    revenue: 422110,
-    image: "/images/menu/nasi-goreng.jpg",
+    name: "Snack",
+    value: 10.9,
   },
 ];
 
-function formatRupiah(value: number) {
-  return `Rp ${value.toLocaleString("id-ID")}`;
-}
-
-/* ===============================
-   ICON
-================================ */
-
-function DashboardIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H14v-6h-4v6H3.5a.5.5 0 0 1-.5-.5v-9.7Z" />
-    </svg>
-  );
-}
-
-function OrderIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M7 4h2V2h6v2h2v2h3v16H4V6h3V4Zm4 0v2h2V4h-2Zm-2 7 2.2 2.2L16 8.5l1.4 1.4-6.2 6.2L7.6 12.5 9 11Z" />
-    </svg>
-  );
-}
-
-function ProductIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M5 4h14v16H5v-5H2V9h3V4Zm2 3v10h10V7H7Zm-3 4v2h3v-2H4Zm5-2h6v2H9V9Zm0 4h6v2H9v-2Z" />
-    </svg>
-  );
-}
-
-function ReportIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="M6 2h9l5 5v15H6V2Zm8 2.5V8h3.5L14 4.5ZM9 12h8v1.8H9V12Zm0 4h8v1.8H9V16Z" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="m19.2 13.2.1-1.2-.1-1.2 2-1.5-2-3.4-2.5 1a8 8 0 0 0-2-1.1L14.4 3H9.6l-.4 2.8a8 8 0 0 0-2 1.1l-2.5-1-2 3.4 2 1.5-.1 1.2.1 1.2-2 1.5 2 3.4 2.5-1a8 8 0 0 0 2 1.1l.4 2.8h4.8l.4-2.8a8 8 0 0 0 2-1.1l2.5 1 2-3.4-2.1-1.5ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
-    </svg>
-  );
-}
-
-function MoneyIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <rect
-        x="3"
-        y="6"
-        width="18"
-        height="12"
-        rx="2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <circle
-        cx="12"
-        cy="12"
-        r="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function ClipboardIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path
-        d="M8 4h8v3H8V4Zm-2 2H4v16h16V6h-2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="m8 14 2.5 2.5L16 11"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
-}
-
-function CoinIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <ellipse
-        cx="12"
-        cy="6"
-        rx="6"
-        ry="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M6 6v10c0 1.7 2.7 3 6 3s6-1.3 6-3V6"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-    </svg>
-  );
-}
-
-function ArrowUpIcon() {
-  return (
-    <svg viewBox="0 0 24 24">
-      <path d="m12 4 6 7h-4v9h-4v-9H6l6-7Z" />
-    </svg>
-  );
-}
-
-/* ===============================
-   CHART
-================================ */
-
-function RevenueChart({
-  points,
-}: {
-  points: ChartPoint[];
-}) {
-  const [hovered, setHovered] = useState<number | null>(null);
-
-  const maxRevenue = Math.max(
-    ...points.map((point) => point.revenue),
-    1
-  );
-
-  const chartWidth = 760;
-  const chartHeight = 230;
-  const bottom = 205;
-  const top = 18;
-  const usableHeight = bottom - top;
-
-  const step =
-    points.length > 1
-      ? chartWidth / (points.length - 1)
-      : chartWidth;
-
-  const coordinates = points.map((point, index) => {
-    const x =
-      points.length === 1
-        ? chartWidth / 2
-        : index * step;
-
-    const y =
-      bottom -
-      (point.revenue / maxRevenue) * usableHeight * 0.86;
-
-    return {
-      ...point,
-      x,
-      y,
-    };
-  });
-
-  const polyline = coordinates
-    .map((point) => `${point.x},${point.y}`)
-    .join(" ");
-
-  return (
-    <section className="revenue-card">
-      <div className="chart-heading">
-        <h3>Grafik Pendapatan</h3>
-
-        <div className="chart-legends">
-          <span>
-            <i className="legend-red" />
-            Pendapatan
-          </span>
-
-          <span>
-            <i className="legend-pink" />
-            Jumlah Pesanan
-          </span>
-        </div>
-      </div>
-
-      <div className="chart-body">
-        <div className="left-axis">
-          <span>{formatRupiah(maxRevenue)}</span>
-          <span>{formatRupiah(maxRevenue * 0.75)}</span>
-          <span>{formatRupiah(maxRevenue * 0.5)}</span>
-          <span>{formatRupiah(maxRevenue * 0.25)}</span>
-          <span>Rp 0</span>
-        </div>
-
-        <div className="svg-area">
-          <svg
-            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            preserveAspectRatio="none"
-            className="chart-svg"
-          >
-            {[35, 77, 119, 161, 203].map((y) => (
-              <line
-                key={y}
-                x1="0"
-                y1={y}
-                x2={chartWidth}
-                y2={y}
-                className="chart-grid-line"
-              />
-            ))}
-
-            {coordinates.map((point, index) => {
-              const barWidth = Math.max(
-                20,
-                Math.min(40, step * 0.45)
-              );
-
-              return (
-                <rect
-                  key={`bar-${index}`}
-                  x={point.x - barWidth / 2}
-                  y={point.y}
-                  width={barWidth}
-                  height={bottom - point.y}
-                  rx="2"
-                  className="chart-bar"
-                />
-              );
-            })}
-
-            <polyline
-              points={polyline}
-              fill="none"
-              className="chart-red-line"
-            />
-
-            {coordinates.map((point, index) => (
-              <g key={`point-${index}`}>
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r="10"
-                  fill="transparent"
-                  className="point-hit-area"
-                  onMouseEnter={() => setHovered(index)}
-                  onMouseLeave={() => setHovered(null)}
-                />
-
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r="4.5"
-                  className="chart-red-point"
-                  onMouseEnter={() => setHovered(index)}
-                  onMouseLeave={() => setHovered(null)}
-                />
-              </g>
-            ))}
-          </svg>
-
-          {hovered !== null && (
-            <div
-              className="chart-tooltip"
-              style={{
-                left: `${(coordinates[hovered].x / chartWidth) * 100}%`,
-                top: `${(coordinates[hovered].y / chartHeight) * 100}%`,
-              }}
-            >
-              <strong>
-                {coordinates[hovered].label}
-              </strong>
-
-              <span>
-                {formatRupiah(
-                  coordinates[hovered].revenue
-                )}
-              </span>
-
-              <small>
-                {coordinates[hovered].orders} pesanan
-              </small>
-            </div>
-          )}
-
-          <div className="chart-x-labels">
-            {points.map((point) => (
-              <span key={point.label}>
-                {point.label}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="right-axis">
-          <span>80</span>
-          <span>60</span>
-          <span>40</span>
-          <span>20</span>
-          <span>0</span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ===============================
-   DONUT
-================================ */
-
-function CategoryChart({
-  categories,
-}: {
-  categories: CategoryData[];
-}) {
-  const first = categories[0]?.percentage ?? 0;
-  const second = categories[1]?.percentage ?? 0;
-
-  const firstDeg = first * 3.6;
-  const secondDeg = (first + second) * 3.6;
-
-  return (
-    <section className="category-card">
-      <h3>Pendapatan per Kategori</h3>
-
-      <div className="category-content">
-        <div className="donut-area">
-          <div
-            className="donut-chart"
-            style={{
-              background: `conic-gradient(
-                #08b96e 0deg ${firstDeg}deg,
-                #1599e8 ${firstDeg}deg ${secondDeg}deg,
-                #ffad18 ${secondDeg}deg 360deg
-              )`,
-            }}
-          >
-            <div className="donut-hole" />
-
-            <span className="donut-label label-food">
-              {categories[0]?.percentage}%
-            </span>
-
-            <span className="donut-label label-drink">
-              {categories[1]?.percentage}%
-            </span>
-
-            <span className="donut-label label-snack">
-              {categories[2]?.percentage}%
-            </span>
-          </div>
-        </div>
-
-        <div className="category-list">
-          {categories.map((item) => (
-            <div
-              className="category-list-row"
-              key={item.name}
-            >
-              <div>
-                <i
-                  className={`category-dot ${item.className}`}
-                />
-                <span>{item.name}</span>
-              </div>
-
-              <strong>
-                {item.percentage}%
-              </strong>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ===============================
-   PAGE
-================================ */
+const periodOptions: {
+  value: Period;
+  label: string;
+}[] = [
+  {
+    value: "today",
+    label: "Hari Ini",
+  },
+  {
+    value: "week",
+    label: "Minggu Ini",
+  },
+  {
+    value: "month",
+    label: "Bulan Ini",
+  },
+  {
+    value: "sixMonths",
+    label: "6 Bulan",
+  },
+  {
+    value: "year",
+    label: "1 Tahun",
+  },
+];
 
 export default function ReportsPage() {
   const [period, setPeriod] =
@@ -634,317 +225,370 @@ export default function ReportsPage() {
 
   const data = reportData[period];
 
-  const averageOrder = useMemo(() => {
-    if (data.totalOrders === 0) return 0;
+  const pieColors = [
+    "#00b96b",
+    "#168be5",
+    "#ffb020",
+    "#ff7a1a",
+  ];
 
-    return Math.round(
-      data.totalRevenue / data.totalOrders
-    );
-  }, [data]);
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(value);
 
   return (
-    <main className="reports-page">
-      <div className="reports-layout">
+    <main className="flex min-h-screen bg-[#f5f5f5]">
+      <Sidebar />
 
-        {/* SIDEBAR */}
+      <section className="min-w-0 flex-1 p-5">
+        {/* HEADER */}
+        <div className="mb-5">
+          <AdminHeader
+            title="Laporan Keuangan"
+            subtitle="Lihat ringkasan pendapatan dan transaksi caffe Anda."
+          />
+        </div>
 
-        <aside className="reports-sidebar">
-          <div className="reports-logo">
-            <img
-              src="/images/tapjaya-logo.png"
-              alt="TAP JAYA"
-            />
-          </div>
-
-          <nav className="reports-navigation">
-
-            <Link
-              href="/dashboard"
-              className="report-nav-item"
-            >
-              <span>
-                <DashboardIcon />
-              </span>
-              Dashboard
-            </Link>
-
-            <Link
-              href="/orders"
-              className="report-nav-item"
-            >
-              <span>
-                <OrderIcon />
-              </span>
-              Pesanan
-            </Link>
-
-            <Link
-              href="/products"
-              className="report-nav-item"
-            >
-              <span>
-                <ProductIcon />
-              </span>
-              Menu Produk
-            </Link>
-
-            <Link
-              href="/reports"
-              className="report-nav-item active"
-            >
-              <span>
-                <ReportIcon />
-              </span>
-              Laporan
-            </Link>
-
-            <Link
-              href="/settings"
-              className="report-nav-item"
-            >
-              <span>
-                <SettingsIcon />
-              </span>
-              Pengaturan
-            </Link>
-
-          </nav>
-        </aside>
-
-        {/* CONTENT */}
-
-        <section className="reports-content">
-
-          <header className="reports-header">
-            <div>
-              <h1>Laporan Keuangan</h1>
-
-              <p>
-                Lihat ringkasan pendapatan dan transaksi caffe anda
-              </p>
-            </div>
-          </header>
-
-          {/* PERIOD */}
-
-          <section className="period-selector">
+        {/* PERIOD FILTER */}
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+          {periodOptions.map((item) => (
             <button
-              className={
-                period === "today"
-                  ? "active"
-                  : ""
-              }
+              key={item.value}
+              type="button"
               onClick={() =>
-                setPeriod("today")
+                setPeriod(item.value)
               }
+              className={`h-[40px] rounded-lg border text-[11px] font-medium transition ${
+                period === item.value
+                  ? "border-[#e63131] bg-[#e63131] text-white"
+                  : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+              }`}
             >
-              Hari Ini
+              {item.label}
             </button>
+          ))}
+        </div>
 
-            <button
-              className={
-                period === "week"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setPeriod("week")
-              }
-            >
-              Minggu Ini
-            </button>
-
-            <button
-              className={
-                period === "month"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setPeriod("month")
-              }
-            >
-              Bulan Ini
-            </button>
-
-            <button
-              className={
-                period === "sixMonths"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setPeriod("sixMonths")
-              }
-            >
-              6 Bulan
-            </button>
-
-            <button
-              className={
-                period === "year"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setPeriod("year")
-              }
-            >
-              1 Tahun
-            </button>
-          </section>
-
-          {/* SUMMARY */}
-
-          <section className="report-summary">
-
-            <article className="summary-card">
-              <div className="summary-icon green">
-                <MoneyIcon />
+        {/* SUMMARY */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {/* TOTAL PENDAPATAN */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-green-50 p-2">
+                <Banknote
+                  size={20}
+                  className="text-green-500"
+                />
               </div>
 
               <div>
-                <h4>Total Pendapatan</h4>
+                <p className="text-[11px] font-semibold text-gray-700">
+                  Total Pendapatan
+                </p>
 
-                <strong>
-                  {formatRupiah(
+                <p className="mt-1 text-[21px] font-bold text-black">
+                  {formatCurrency(
                     data.totalRevenue
                   )}
-                </strong>
+                </p>
 
-                <p>
-                  <ArrowUpIcon />
-
-                  {data.growthRevenue}%{" "}
-                  {data.comparisonText}
+                <p className="mt-2 text-[9px] font-medium text-green-500">
+                  ↑ 18% {data.comparison}
                 </p>
               </div>
-            </article>
+            </div>
+          </div>
 
-            <article className="summary-card">
-              <div className="summary-icon blue">
-                <ClipboardIcon />
+          {/* TOTAL PESANAN */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-blue-50 p-2">
+                <ClipboardList
+                  size={20}
+                  className="text-blue-500"
+                />
               </div>
 
               <div>
-                <h4>Total Pesanan</h4>
+                <p className="text-[11px] font-semibold text-gray-700">
+                  Total Pesanan
+                </p>
 
-                <strong>
+                <p className="mt-1 text-[21px] font-bold text-black">
                   {data.totalOrders.toLocaleString(
                     "id-ID"
                   )}
-                </strong>
+                </p>
 
-                <p>
-                  <ArrowUpIcon />
-
-                  {data.growthOrders}%{" "}
-                  {data.comparisonText}
+                <p className="mt-2 text-[9px] font-medium text-green-500">
+                  ↑ 14% {data.comparison}
                 </p>
               </div>
-            </article>
+            </div>
+          </div>
 
-            <article className="summary-card">
-              <div className="summary-icon orange">
-                <CoinIcon />
+          {/* RATA-RATA */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-yellow-50 p-2">
+                <TrendingUp
+                  size={20}
+                  className="text-yellow-500"
+                />
               </div>
 
               <div>
-                <h4>Rata-rata pesanan</h4>
+                <p className="text-[11px] font-semibold text-gray-700">
+                  Rata-rata Pesanan
+                </p>
 
-                <strong>
-                  {averageOrder.toLocaleString(
-                    "id-ID"
+                <p className="mt-1 text-[21px] font-bold text-black">
+                  {formatCurrency(
+                    data.averageOrder
                   )}
-                </strong>
+                </p>
 
-                <p>
-                  <ArrowUpIcon />
-
-                  {data.growthAverage}%{" "}
-                  {data.comparisonText}
+                <p className="mt-2 text-[9px] font-medium text-green-500">
+                  ↑ 7% {data.comparison}
                 </p>
               </div>
-            </article>
+            </div>
+          </div>
+        </div>
 
-          </section>
+        {/* CHART + MENU TERLARIS */}
+        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[1.45fr_0.85fr]">
+          {/* CHART */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-[14px] font-bold">
+                Grafik Pendapatan
+              </h2>
 
-          {/* REPORT */}
+              <div className="flex items-center gap-4 text-[10px] text-gray-500">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  Pendapatan
+                </div>
 
-          <section className="reports-grid">
-
-            <div className="reports-left">
-
-              <RevenueChart
-                points={data.chart}
-              />
-
-              <CategoryChart
-                categories={data.categories}
-              />
-
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-red-200" />
+                  Jumlah Pesanan
+                </div>
+              </div>
             </div>
 
-            {/* BEST MENU */}
+            <div className="h-[260px]">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <BarChart data={data.chart}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#eeeeee"
+                  />
 
-            <aside className="best-menu-card">
+                  <XAxis
+                    dataKey="label"
+                    tick={{
+                      fontSize: 9,
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
 
-              <h3>
-                Menu Terlaris
-              </h3>
+                  <YAxis
+                    yAxisId="left"
+                    tick={{
+                      fontSize: 8,
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={65}
+                  />
 
-              <div className="best-menu-head">
-                <span>#</span>
-                <span>Nama Menu</span>
-                <span>Terjual</span>
-                <span>Pendapatan</span>
-              </div>
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{
+                      fontSize: 8,
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={35}
+                  />
 
-              <div className="best-menu-body">
+                  <Tooltip />
 
-                {bestMenus.map((menu) => (
+                  <Bar
+                    yAxisId="left"
+                    dataKey="revenue"
+                    fill="#fecaca"
+                    radius={[4, 4, 0, 0]}
+                  />
 
-                  <div
-                    className="best-menu-row"
-                    key={menu.no}
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="orders"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* BEST MENU */}
+          <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-[14px] font-bold">
+              Menu Terlaris
+            </h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] border-separate border-spacing-0">
+                <thead>
+                  <tr className="bg-[#f7f7f7] text-left text-[10px] font-semibold text-gray-600">
+                    <th className="rounded-l-lg px-2 py-2.5">
+                      No.
+                    </th>
+
+                    <th className="px-2 py-2.5">
+                      Menu
+                    </th>
+
+                    <th className="px-2 py-2.5">
+                      Terjual
+                    </th>
+
+                    <th className="rounded-r-lg px-2 py-2.5">
+                      Pendapatan
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {bestMenus.map(
+                    (item, index) => (
+                      <tr
+                        key={item.id}
+                        className="text-[10px] text-gray-700 transition hover:bg-gray-50"
+                      >
+                        <td className="border-b border-gray-100 px-2 py-2.5">
+                          {index + 1}
+                        </td>
+
+                        <td className="border-b border-gray-100 px-2 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              width={30}
+                              height={30}
+                              className="h-[30px] w-[30px] rounded-lg object-cover"
+                            />
+
+                            <span className="font-medium text-gray-800">
+                              {item.name}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="border-b border-gray-100 px-2 py-2.5">
+                          {item.sold}
+                        </td>
+
+                        <td className="border-b border-gray-100 px-2 py-2.5">
+                          {formatCurrency(
+                            item.revenue
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* CATEGORY */}
+        <div className="mt-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-[14px] font-bold">
+            Pendapatan per Kategori
+          </h2>
+
+          <div className="flex flex-col items-center gap-6 lg:flex-row">
+            <div className="h-[190px] w-[220px] shrink-0">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <PieChart>
+                  <Pie
+                    data={categories}
+                    dataKey="value"
+                    innerRadius={52}
+                    outerRadius={78}
                   >
-                    <span>
-                      {menu.no}
-                    </span>
+                    {categories.map(
+                      (
+                        category,
+                        index
+                      ) => (
+                        <Cell
+                          key={
+                            category.name
+                          }
+                          fill={
+                            pieColors[
+                              index
+                            ]
+                          }
+                        />
+                      )
+                    )}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-                    <div className="best-menu-name">
-                      <img
-                        src={menu.image}
-                        alt={menu.name}
+            <div className="w-full flex-1">
+              {categories.map(
+                (category, index) => (
+                  <div
+                    key={category.name}
+                    className="flex items-center justify-between border-b border-gray-100 py-3 last:border-none"
+                  >
+                    <div className="flex items-center gap-3 text-[11px] text-gray-700">
+                      <span
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor:
+                            pieColors[
+                              index
+                            ],
+                        }}
                       />
 
-                      <span>
-                        {menu.name}
-                      </span>
+                      {category.name}
                     </div>
 
-                    <span className="best-sold">
-                      {menu.sold}
-                    </span>
-
-                    <span className="best-revenue">
-                      {formatRupiah(
-                        menu.revenue
-                      )}
+                    <span className="text-[11px] font-bold text-gray-800">
+                      {category.value}%
                     </span>
                   </div>
-
-                ))}
-
-              </div>
-
-            </aside>
-
-          </section>
-
-        </section>
-
-      </div>
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
