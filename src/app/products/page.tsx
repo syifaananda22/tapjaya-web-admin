@@ -1,7 +1,10 @@
+
 "use client";
 
 import {
-  ChangeEvent,
+  type ChangeEvent,
+  useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -22,6 +25,12 @@ import {
 
 import Sidebar from "@/components/Sidebar";
 import AdminHeader from "@/components/AdminHeader";
+import { productService } from "@/services/productService";
+
+import type {
+  Product,
+  ProductInput,
+} from "@/types/product";
 
 type ProductCategory =
   | "Makanan"
@@ -29,109 +38,54 @@ type ProductCategory =
   | "Kopi"
   | "Snack";
 
-type Product = {
-  id: number;
+type ProductForm = {
   name: string;
   category: ProductCategory;
-  price: number;
-  stock: number;
+  price: string;
+  stock: string;
   image: string;
 };
 
-const initialProducts: Product[] = [
-  {
-    id: 1,
-    name: "Bakmi Jaya",
-    category: "Makanan",
-    price: 26182,
-    stock: 50,
-    image: "/images/menu/bakmi-jaya.jpg",
-  },
-  {
-    id: 2,
-    name: "Kopi Susu Berjaya",
-    category: "Kopi",
-    price: 24545,
-    stock: 42,
-    image: "/images/menu/kopi-susu.jpg",
-  },
-  {
-    id: 3,
-    name: "Nasi Goreng Jawa",
-    category: "Makanan",
-    price: 42211,
-    stock: 38,
-    image: "/images/menu/nasi-goreng.jpg",
-  },
-  {
-    id: 4,
-    name: "Mie Goreng Jawa",
-    category: "Makanan",
-    price: 42211,
-    stock: 35,
-    image: "/images/menu/mie-goreng.jpg",
-  },
-  {
-    id: 5,
-    name: "Milkshake Mango",
-    category: "Minuman",
-    price: 34545,
-    stock: 25,
-    image: "/images/menu/milkshake-mango.jpg",
-  },
-  {
-    id: 6,
-    name: "Bakmi Jaya Special",
-    category: "Makanan",
-    price: 32000,
-    stock: 30,
-    image: "/images/menu/bakmi-jaya.jpg",
-  },
-  {
-    id: 7,
-    name: "Kopi Susu Large",
-    category: "Kopi",
-    price: 30000,
-    stock: 20,
-    image: "/images/menu/kopi-susu.jpg",
-  },
-  {
-    id: 8,
-    name: "Nasi Goreng Special",
-    category: "Makanan",
-    price: 48000,
-    stock: 27,
-    image: "/images/menu/nasi-goreng.jpg",
-  },
-  {
-    id: 9,
-    name: "Mie Goreng Special",
-    category: "Makanan",
-    price: 47000,
-    stock: 23,
-    image: "/images/menu/mie-goreng.jpg",
-  },
-  {
-    id: 10,
-    name: "Milkshake Mango Large",
-    category: "Minuman",
-    price: 39000,
-    stock: 18,
-    image: "/images/menu/milkshake-mango.jpg",
-  },
-];
-
-const emptyForm = {
+const emptyForm: ProductForm = {
   name: "",
-  category: "Makanan" as ProductCategory,
+  category: "Makanan",
   price: "",
   stock: "",
   image: "",
 };
 
+function imageUrl(image: string | null): string {
+  if (!image) return "";
+
+  if (image.startsWith("/uploads/")) {
+    const backend = (
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000"
+    ).replace(/\/$/, "");
+
+    return `${backend}${image}`;
+  }
+
+  return image;
+}
+
+function productDate(value?: string): string {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
 export default function ProductsPage() {
   const [products, setProducts] =
-    useState<Product[]>(initialProducts);
+    useState<Product[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [saving, setSaving] =
+    useState(false);
 
   const [search, setSearch] =
     useState("");
@@ -156,8 +110,51 @@ export default function ProductsPage() {
   const [editingId, setEditingId] =
     useState<number | null>(null);
 
+  const [editingProduct, setEditingProduct] =
+    useState<Product | null>(null);
+
   const [form, setForm] =
-    useState(emptyForm);
+    useState<ProductForm>(emptyForm);
+
+  const [selectedImageFile, setSelectedImageFile] =
+    useState<File | null>(null);
+
+  const [appliedDateRange, setAppliedDateRange] =
+    useState<{
+      startDate: string;
+      endDate: string;
+    } | null>(null);
+
+  /* ======================
+     LOAD PRODUCTS FROM API
+  ====================== */
+
+  const loadProducts = useCallback(
+    async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const result =
+          await productService.getAll();
+
+        setProducts(result.data);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Gagal mengambil produk."
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    void loadProducts();
+  }, [loadProducts]);
 
   const filteredProducts = useMemo(
     () => {
@@ -173,17 +170,28 @@ export default function ProductsPage() {
 
           const matchCategory =
             category === "Semua" ||
-            product.category ===
-              category;
+            product.category === category;
+
+          const created =
+            productDate(product.created_at);
+
+          const matchDate =
+            !appliedDateRange ||
+            (
+              created >= appliedDateRange.startDate &&
+              created <= appliedDateRange.endDate
+            );
 
           return (
             matchSearch &&
-            matchCategory
+            matchCategory &&
+            matchDate &&
+            Boolean(product.is_active)
           );
         }
       );
     },
-    [products, search, category]
+    [products, search, category, appliedDateRange]
   );
 
   const formatCurrency = (
@@ -196,7 +204,7 @@ export default function ProductsPage() {
     }).format(value);
 
   const getCategoryClass = (
-    value: ProductCategory
+    value: string
   ) => {
     switch (value) {
       case "Makanan":
@@ -222,7 +230,9 @@ export default function ProductsPage() {
 
   const openAddModal = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setEditingProduct(null);
+    setForm({ ...emptyForm });
+    setSelectedImageFile(null);
     setShowModal(true);
   };
 
@@ -234,25 +244,23 @@ export default function ProductsPage() {
     product: Product
   ) => {
     setEditingId(product.id);
+    setEditingProduct(product);
 
     setForm({
       name: product.name,
       category:
-        product.category,
-      price: String(
-        product.price
-      ),
-      stock: String(
-        product.stock
-      ),
-      image: product.image,
+        product.category as ProductCategory,
+      price: String(product.price),
+      stock: String(product.stock),
+      image: product.image ?? "",
     });
 
+    setSelectedImageFile(null);
     setShowModal(true);
   };
 
   /* ======================
-     UPLOAD IMAGE
+     UPLOAD IMAGE PREVIEW
   ====================== */
 
   const handleImageUpload = (
@@ -269,11 +277,7 @@ export default function ProductsPage() {
       "image/webp",
     ];
 
-    if (
-      !allowedTypes.includes(
-        file.type
-      )
-    ) {
+    if (!allowedTypes.includes(file.type)) {
       window.alert(
         "Format gambar harus JPG, PNG, atau WEBP."
       );
@@ -282,10 +286,7 @@ export default function ProductsPage() {
       return;
     }
 
-    if (
-      file.size >
-      2 * 1024 * 1024
-    ) {
+    if (file.size > 2 * 1024 * 1024) {
       window.alert(
         "Ukuran gambar maksimal 2 MB."
       );
@@ -294,12 +295,16 @@ export default function ProductsPage() {
       return;
     }
 
-    const reader =
-      new FileReader();
+    setSelectedImageFile(file);
+
+    const reader = new FileReader();
 
     reader.onloadend = () => {
-      const imageData =
-        reader.result as string;
+      if (typeof reader.result !== "string") {
+        return;
+      }
+
+      const imageData = reader.result;
 
       setForm((prev) => ({
         ...prev,
@@ -311,104 +316,126 @@ export default function ProductsPage() {
   };
 
   /* ======================
-     SAVE PRODUCT
+     SAVE PRODUCT TO MYSQL
   ====================== */
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
+
     if (
       !form.name.trim() ||
-      !form.price ||
-      !form.stock
+      form.price.trim() === "" ||
+      form.stock.trim() === ""
     ) {
       window.alert(
         "Nama menu, harga, dan stok wajib diisi."
       );
-
       return;
     }
 
-    if (!form.image) {
+    const price = Number(form.price);
+    const stock = Number(form.stock);
+
+    if (
+      !Number.isFinite(price) ||
+      price < 0 ||
+      !Number.isInteger(stock) ||
+      stock < 0
+    ) {
       window.alert(
-        "Silakan upload gambar menu."
+        "Harga atau stok tidak valid."
       );
-
       return;
     }
 
-    if (editingId !== null) {
-      setProducts((prev) =>
-        prev.map((product) =>
-          product.id ===
-          editingId
-            ? {
-                ...product,
-                name: form.name,
-                category:
-                  form.category,
-                price: Number(
-                  form.price
-                ),
-                stock: Number(
-                  form.stock
-                ),
-                image:
-                  form.image,
-              }
-            : product
-        )
+    setSaving(true);
+
+    try {
+      let storedImage: string | null =
+        editingProduct?.image ?? null;
+
+      if (selectedImageFile) {
+        const uploaded =
+          await productService.uploadImage(
+            selectedImageFile
+          );
+
+        storedImage = uploaded.image;
+      }
+
+      const payload: ProductInput = {
+        name: form.name.trim(),
+        category: form.category,
+        price,
+        stock,
+        image: storedImage,
+        is_active:
+          editingProduct?.is_active ?? true,
+      };
+
+      if (editingId !== null) {
+        await productService.update(
+          editingId,
+          payload
+        );
+      } else {
+        await productService.create(payload);
+      }
+
+      await loadProducts();
+
+      setShowModal(false);
+      setEditingId(null);
+      setEditingProduct(null);
+      setSelectedImageFile(null);
+      setForm({ ...emptyForm });
+
+      window.alert(
+        editingId !== null
+          ? "Produk berhasil diperbarui."
+          : "Produk berhasil ditambahkan."
       );
-    } else {
-      setProducts((prev) => [
-        ...prev,
-        {
-          id:
-            Math.max(
-              ...prev.map(
-                (item) =>
-                  item.id
-              ),
-              0
-            ) + 1,
-
-          name: form.name,
-          category:
-            form.category,
-          price: Number(
-            form.price
-          ),
-          stock: Number(
-            form.stock
-          ),
-          image: form.image,
-        },
-      ]);
+    } catch (err) {
+      window.alert(
+        err instanceof Error
+          ? err.message
+          : "Gagal menyimpan produk."
+      );
+    } finally {
+      setSaving(false);
     }
-
-    setShowModal(false);
-    setEditingId(null);
-    setForm(emptyForm);
   };
 
   /* ======================
      DELETE PRODUCT
   ====================== */
 
-  const handleDelete = (
+  const handleDelete = async (
     id: number
   ) => {
     const confirmed =
-      window.confirm(
-        "Hapus menu ini?"
-      );
+      window.confirm("Hapus menu ini?");
 
     if (!confirmed) return;
 
-    setProducts((prev) =>
-      prev.filter(
-        (product) =>
-          product.id !== id
-      )
-    );
+    try {
+      await productService.changeStatus(
+        id,
+        false
+      );
+
+      await loadProducts();
+
+      window.alert(
+        "Menu berhasil dinonaktifkan."
+      );
+    } catch (err) {
+      window.alert(
+        err instanceof Error
+          ? err.message
+          : "Gagal menonaktifkan produk."
+      );
+    }
   };
 
   return (
@@ -417,6 +444,7 @@ export default function ProductsPage() {
 
       <section className="min-w-0 flex-1 p-5">
         {/* HEADER */}
+
         <div className="mb-5">
           <AdminHeader
             title="Manajemen Menu Produk"
@@ -439,9 +467,7 @@ export default function ProductsPage() {
               type="text"
               value={search}
               onChange={(e) =>
-                setSearch(
-                  e.target.value
-                )
+                setSearch(e.target.value)
               }
               placeholder="Cari nama menu"
               className="h-[40px] w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-[11px] outline-none transition focus:border-red-400"
@@ -460,18 +486,14 @@ export default function ProductsPage() {
               }
               className="flex h-[40px] min-w-[225px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 text-[11px] text-gray-600"
             >
-              <CalendarDays
-                size={15}
-              />
+              <CalendarDays size={15} />
 
               <span className="flex-1 text-left">
                 {startDate} -{" "}
                 {endDate}
               </span>
 
-              <ChevronDown
-                size={13}
-              />
+              <ChevronDown size={13} />
             </button>
 
             {showDateFilter && (
@@ -484,9 +506,7 @@ export default function ProductsPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) =>
-                    setStartDate(
-                      e.target.value
-                    )
+                    setStartDate(e.target.value)
                   }
                   className="mb-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px]"
                 />
@@ -495,20 +515,32 @@ export default function ProductsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) =>
-                    setEndDate(
-                      e.target.value
-                    )
+                    setEndDate(e.target.value)
                   }
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px]"
                 />
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowDateFilter(
-                      false
-                    )
-                  }
+                  onClick={() => {
+                    if (
+                      !startDate ||
+                      !endDate ||
+                      startDate > endDate
+                    ) {
+                      window.alert(
+                        "Periksa rentang tanggal."
+                      );
+                      return;
+                    }
+
+                    setAppliedDateRange({
+                      startDate,
+                      endDate,
+                    });
+
+                    setShowDateFilter(false);
+                  }}
                   className="mt-4 h-[34px] w-full rounded-lg bg-[#e63131] text-[10px] font-semibold text-white transition hover:bg-[#ca2929]"
                 >
                   Terapkan
@@ -518,13 +550,12 @@ export default function ProductsPage() {
           </div>
 
           {/* CATEGORY */}
+
           <div className="relative">
             <select
               value={category}
               onChange={(e) =>
-                setCategory(
-                  e.target.value
-                )
+                setCategory(e.target.value)
               }
               className="h-[40px] min-w-[180px] appearance-none rounded-lg border border-gray-200 bg-white px-4 pr-9 text-[11px] outline-none"
             >
@@ -568,6 +599,7 @@ export default function ProductsPage() {
         </div>
 
         {/* TABLE */}
+
         <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-separate border-spacing-0">
@@ -599,30 +631,31 @@ export default function ProductsPage() {
                 {filteredProducts.map(
                   (product) => (
                     <tr
-                      key={
-                        product.id
-                      }
+                      key={product.id}
                       className="text-[11px] text-gray-700 transition hover:bg-gray-50"
                     >
                       <td className="border-b border-gray-100 px-4 py-2.5">
                         <div className="flex items-center gap-3">
-                          <Image
-                            src={
-                              product.image
-                            }
-                            alt={
-                              product.name
-                            }
-                            width={40}
-                            height={40}
-                            unoptimized
-                            className="h-[40px] w-[40px] rounded-lg object-cover"
-                          />
+                          {product.image ? (
+                            <Image
+                              src={imageUrl(product.image)}
+                              alt={product.name}
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="h-[40px] w-[40px] rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-gray-100">
+                              <ImagePlus
+                                size={18}
+                                className="text-gray-400"
+                              />
+                            </div>
+                          )}
 
                           <span className="font-medium text-gray-800">
-                            {
-                              product.name
-                            }
+                            {product.name}
                           </span>
                         </div>
                       </td>
@@ -633,9 +666,7 @@ export default function ProductsPage() {
                             product.category
                           )}`}
                         >
-                          {
-                            product.category
-                          }
+                          {product.category}
                         </span>
                       </td>
 
@@ -646,9 +677,7 @@ export default function ProductsPage() {
                       </td>
 
                       <td className="border-b border-gray-100 px-4 py-2.5">
-                        {
-                          product.stock
-                        }
+                        {product.stock}
                       </td>
 
                       <td className="border-b border-gray-100 px-4 py-2.5">
@@ -656,29 +685,23 @@ export default function ProductsPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              openEditModal(
-                                product
-                              )
+                              openEditModal(product)
                             }
                             className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
                           >
-                            <Pencil
-                              size={14}
-                            />
+                            <Pencil size={14} />
                           </button>
 
                           <button
                             type="button"
                             onClick={() =>
-                              handleDelete(
+                              void handleDelete(
                                 product.id
                               )
                             }
                             className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
                           >
-                            <Trash2
-                              size={14}
-                            />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
@@ -686,15 +709,17 @@ export default function ProductsPage() {
                   )
                 )}
 
-                {filteredProducts.length ===
-                  0 && (
+                {filteredProducts.length === 0 && (
                   <tr>
                     <td
                       colSpan={5}
                       className="py-10 text-center text-[11px] text-gray-400"
                     >
-                      Menu tidak
-                      ditemukan.
+                      {loading
+                        ? "Memuat menu..."
+                        : error
+                          ? error
+                          : "Menu tidak ditemukan."}
                     </td>
                   </tr>
                 )}
@@ -730,9 +755,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setShowModal(
-                    false
-                  )
+                  setShowModal(false)
                 }
                 className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
               >
@@ -753,9 +776,7 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      name:
-                        e.target
-                          .value,
+                      name: e.target.value,
                     })
                   }
                   className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
@@ -770,15 +791,12 @@ export default function ProductsPage() {
                 </label>
 
                 <select
-                  value={
-                    form.category
-                  }
+                  value={form.category}
                   onChange={(e) =>
                     setForm({
                       ...form,
                       category:
-                        e.target
-                          .value as ProductCategory,
+                        e.target.value as ProductCategory,
                     })
                   }
                   className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
@@ -812,15 +830,11 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     min="0"
-                    value={
-                      form.price
-                    }
+                    value={form.price}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        price:
-                          e.target
-                            .value,
+                        price: e.target.value,
                       })
                     }
                     className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
@@ -835,15 +849,11 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     min="0"
-                    value={
-                      form.stock
-                    }
+                    value={form.stock}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        stock:
-                          e.target
-                            .value,
+                        stock: e.target.value,
                       })
                     }
                     className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
@@ -870,9 +880,7 @@ export default function ProductsPage() {
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    onChange={
-                      handleImageUpload
-                    }
+                    onChange={handleImageUpload}
                     className="hidden"
                   />
                 </label>
@@ -892,9 +900,7 @@ export default function ProductsPage() {
 
                     <div className="flex items-center gap-3">
                       <Image
-                        src={
-                          form.image
-                        }
+                        src={imageUrl(form.image)}
                         alt="Preview menu"
                         width={80}
                         height={80}
@@ -940,9 +946,7 @@ export default function ProductsPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setShowModal(
-                    false
-                  )
+                  setShowModal(false)
                 }
                 className="h-[40px] rounded-lg border border-gray-200 px-5 text-[11px] font-medium text-gray-600 transition hover:bg-gray-50"
               >
@@ -951,14 +955,17 @@ export default function ProductsPage() {
 
               <button
                 type="button"
-                onClick={
-                  handleSave
+                onClick={() =>
+                  void handleSave()
                 }
+                disabled={saving}
                 className="h-[40px] rounded-lg bg-[#e63131] px-5 text-[11px] font-semibold text-white transition hover:bg-[#ca2929]"
               >
-                {editingId !== null
-                  ? "Simpan Perubahan"
-                  : "Simpan"}
+                {saving
+                  ? "Menyimpan..."
+                  : editingId !== null
+                    ? "Simpan Perubahan"
+                    : "Simpan"}
               </button>
             </div>
           </div>

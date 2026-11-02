@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { reportService } from "@/services/reportService";
 import Image from "next/image";
 
 import {
@@ -38,160 +39,81 @@ type ReportData = {
   totalRevenue: number;
   totalOrders: number;
   averageOrder: number;
+  revenueChange: number | null;
+  orderChange: number | null;
+  averageChange: number | null;
   comparison: string;
   chart: {
     label: string;
     revenue: number;
     orders: number;
   }[];
+  bestMenus: {
+    id: number;
+    name: string;
+    sold: number;
+    revenue: number;
+    image: string | null;
+  }[];
+  categories: {
+    name: string;
+    value: number;
+  }[];
 };
 
-const reportData: Record<Period, ReportData> = {
-  today: {
-    totalRevenue: 1850000,
-    totalOrders: 57,
-    averageOrder: 32456,
-    comparison: "dari kemarin",
-    chart: [
-      { label: "08:00", revenue: 120000, orders: 4 },
-      { label: "09:00", revenue: 180000, orders: 6 },
-      { label: "10:00", revenue: 220000, orders: 7 },
-      { label: "11:00", revenue: 310000, orders: 9 },
-      { label: "12:00", revenue: 390000, orders: 11 },
-      { label: "13:00", revenue: 280000, orders: 8 },
-      { label: "14:00", revenue: 350000, orders: 10 },
-    ],
-  },
-
-  week: {
-    totalRevenue: 12540000,
-    totalOrders: 384,
-    averageOrder: 32656,
-    comparison: "dari minggu lalu",
-    chart: [
-      { label: "Sen", revenue: 1450000, orders: 44 },
-      { label: "Sel", revenue: 1720000, orders: 51 },
-      { label: "Rab", revenue: 1580000, orders: 48 },
-      { label: "Kam", revenue: 1940000, orders: 58 },
-      { label: "Jum", revenue: 2100000, orders: 64 },
-      { label: "Sab", revenue: 2280000, orders: 68 },
-      { label: "Min", revenue: 1470000, orders: 51 },
-    ],
-  },
-
-  month: {
-    totalRevenue: 48540000,
-    totalOrders: 1487,
-    averageOrder: 32643,
-    comparison: "dari bulan lalu",
-    chart: [
-      { label: "2 Sep", revenue: 520000, orders: 22 },
-      { label: "5 Sep", revenue: 780000, orders: 31 },
-      { label: "8 Sep", revenue: 1120000, orders: 42 },
-      { label: "11 Sep", revenue: 960000, orders: 37 },
-      { label: "14 Sep", revenue: 1280000, orders: 48 },
-      { label: "17 Sep", revenue: 1680000, orders: 63 },
-      { label: "20 Sep", revenue: 1140000, orders: 44 },
-      { label: "23 Sep", revenue: 1390000, orders: 52 },
-      { label: "26 Sep", revenue: 1720000, orders: 66 },
-      { label: "29 Sep", revenue: 1160000, orders: 45 },
-      { label: "2 Okt", revenue: 960000, orders: 39 },
-    ],
-  },
-
-  sixMonths: {
-    totalRevenue: 276300000,
-    totalOrders: 8524,
-    averageOrder: 32414,
-    comparison: "dari 6 bulan sebelumnya",
-    chart: [
-      { label: "Mei", revenue: 38500000, orders: 1180 },
-      { label: "Jun", revenue: 41900000, orders: 1290 },
-      { label: "Jul", revenue: 43700000, orders: 1360 },
-      { label: "Agu", revenue: 46900000, orders: 1448 },
-      { label: "Sep", revenue: 48540000, orders: 1512 },
-      { label: "Okt", revenue: 56760000, orders: 1734 },
-    ],
-  },
-
-  year: {
-    totalRevenue: 548900000,
-    totalOrders: 16870,
-    averageOrder: 32537,
-    comparison: "dari tahun lalu",
-    chart: [
-      { label: "Jan", revenue: 38000000, orders: 1160 },
-      { label: "Feb", revenue: 40500000, orders: 1240 },
-      { label: "Mar", revenue: 42100000, orders: 1300 },
-      { label: "Apr", revenue: 43900000, orders: 1340 },
-      { label: "Mei", revenue: 45500000, orders: 1400 },
-      { label: "Jun", revenue: 46200000, orders: 1425 },
-      { label: "Jul", revenue: 47100000, orders: 1455 },
-      { label: "Agu", revenue: 48300000, orders: 1482 },
-      { label: "Sep", revenue: 49500000, orders: 1515 },
-      { label: "Okt", revenue: 51000000, orders: 1570 },
-      { label: "Nov", revenue: 53300000, orders: 1640 },
-      { label: "Des", revenue: 63400000, orders: 2343 },
-    ],
-  },
+const EMPTY: ReportData = {
+  totalRevenue: 0,
+  totalOrders: 0,
+  averageOrder: 0,
+  revenueChange: null,
+  orderChange: null,
+  averageChange: null,
+  comparison: "dari periode sebelumnya",
+  chart: [],
+  bestMenus: [],
+  categories: [
+    "Makanan",
+    "Minuman",
+    "Kopi",
+    "Snack",
+  ].map((name) => ({
+    name,
+    value: 0,
+  })),
 };
 
-const bestMenus = [
-  {
-    id: 1,
-    name: "Bakmi Jaya",
-    sold: 36,
-    revenue: 1083000,
-    image: "/images/menu/bakmi-jaya.jpg",
-  },
-  {
-    id: 2,
-    name: "Kopi Susu Berjaya",
-    sold: 32,
-    revenue: 795600,
-    image: "/images/menu/kopi-susu.jpg",
-  },
-  {
-    id: 3,
-    name: "Nasi Goreng Jawa",
-    sold: 28,
-    revenue: 591600,
-    image: "/images/menu/nasi-goreng.jpg",
-  },
-  {
-    id: 4,
-    name: "Mie Goreng Jawa",
-    sold: 24,
-    revenue: 581600,
-    image: "/images/menu/mie-goreng.jpg",
-  },
-  {
-    id: 5,
-    name: "Milkshake Mango",
-    sold: 20,
-    revenue: 491600,
-    image: "/images/menu/milkshake-mango.jpg",
-  },
-];
+function getImageUrl(value: string | null): string {
+  if (!value) return "";
 
-const categories = [
-  {
-    name: "Makanan",
-    value: 42.2,
-  },
-  {
-    name: "Minuman",
-    value: 28.1,
-  },
-  {
-    name: "Kopi",
-    value: 18.8,
-  },
-  {
-    name: "Snack",
-    value: 10.9,
-  },
-];
+  if (value.startsWith("/uploads/")) {
+    const backend = (
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000"
+    ).replace(/\/$/, "");
+
+    return `${backend}${value}`;
+  }
+
+  return value;
+}
+
+function changeText(
+  change: number | null,
+  comparison: string
+): string {
+  if (change === null) {
+    return `— ${comparison} (belum ada pembanding)`;
+  }
+
+  const sign =
+    change > 0 ? "↑" :
+    change < 0 ? "↓" : "→";
+
+  return `${sign} ${Math.abs(change).toLocaleString(
+    "id-ID",
+    { maximumFractionDigits: 1 }
+  )}% ${comparison}`;
+}
 
 const periodOptions: {
   value: Period;
@@ -223,7 +145,51 @@ export default function ReportsPage() {
   const [period, setPeriod] =
     useState<Period>("month");
 
-  const data = reportData[period];
+  const [data, setData] =
+    useState<ReportData>(EMPTY);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    setLoading(true);
+    setError("");
+
+    reportService
+      .getOverview(period)
+      .then((response) => {
+        if (active) {
+          setData(response.data);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setData(EMPTY);
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Gagal memuat laporan."
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [period]);
+
+  const bestMenus = data.bestMenus;
+  const categories = data.categories;
 
   const pieColors = [
     "#00b96b",
@@ -239,12 +205,48 @@ export default function ReportsPage() {
       maximumFractionDigits: 0,
     }).format(value);
 
+  // KHUSUS HARI INI:
+  // Tampilkan hanya kelompok jam 08 sampai 22.
+  // Batas grafik diberi label 08:30 dan 22:30.
+  // Filter periode lain menggunakan data API tanpa perubahan.
+  const chartData =
+    period === "today"
+      ? data.chart
+          .filter((item) => {
+            const hour = Number(
+              String(item.label).split(":")[0]
+            );
+
+            return (
+              Number.isFinite(hour) &&
+              hour >= 8 &&
+              hour <= 22
+            );
+          })
+          .map((item) => {
+            const hour = Number(
+              String(item.label).split(":")[0]
+            );
+
+            return {
+              ...item,
+              label:
+                hour === 8
+                  ? "08:30"
+                  : hour === 22
+                    ? "22:30"
+                    : item.label,
+            };
+          })
+      : data.chart;
+
   return (
     <main className="flex min-h-screen bg-[#f5f5f5]">
       <Sidebar />
 
       <section className="min-w-0 flex-1 p-5">
         {/* HEADER */}
+
         <div className="mb-5">
           <AdminHeader
             title="Laporan Keuangan"
@@ -253,6 +255,7 @@ export default function ReportsPage() {
         </div>
 
         {/* PERIOD FILTER */}
+
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
           {periodOptions.map((item) => (
             <button
@@ -272,9 +275,29 @@ export default function ReportsPage() {
           ))}
         </div>
 
+        {error && (
+          <p
+            role="alert"
+            className="mb-3 text-[11px] text-red-600"
+          >
+            {error}
+          </p>
+        )}
+
+        {loading && (
+          <p
+            role="status"
+            className="mb-3 text-[11px] text-gray-500"
+          >
+            Memuat laporan...
+          </p>
+        )}
+
         {/* SUMMARY */}
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* TOTAL PENDAPATAN */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-green-50 p-2">
@@ -296,13 +319,17 @@ export default function ReportsPage() {
                 </p>
 
                 <p className="mt-2 text-[9px] font-medium text-green-500">
-                  ↑ 18% {data.comparison}
+                  {changeText(
+                    data.revenueChange,
+                    data.comparison
+                  )}
                 </p>
               </div>
             </div>
           </div>
 
           {/* TOTAL PESANAN */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-blue-50 p-2">
@@ -324,13 +351,17 @@ export default function ReportsPage() {
                 </p>
 
                 <p className="mt-2 text-[9px] font-medium text-green-500">
-                  ↑ 14% {data.comparison}
+                  {changeText(
+                    data.orderChange,
+                    data.comparison
+                  )}
                 </p>
               </div>
             </div>
           </div>
 
           {/* RATA-RATA */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="rounded-lg bg-yellow-50 p-2">
@@ -352,7 +383,10 @@ export default function ReportsPage() {
                 </p>
 
                 <p className="mt-2 text-[9px] font-medium text-green-500">
-                  ↑ 7% {data.comparison}
+                  {changeText(
+                    data.averageChange,
+                    data.comparison
+                  )}
                 </p>
               </div>
             </div>
@@ -360,8 +394,10 @@ export default function ReportsPage() {
         </div>
 
         {/* CHART + MENU TERLARIS */}
+
         <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[1.45fr_0.85fr]">
           {/* CHART */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-[14px] font-bold">
@@ -371,7 +407,7 @@ export default function ReportsPage() {
               <div className="flex items-center gap-4 text-[10px] text-gray-500">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-red-500" />
-                  Pendapatan
+                  Tren Pesanan
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -386,7 +422,7 @@ export default function ReportsPage() {
                 width="100%"
                 height="100%"
               >
-                <BarChart data={data.chart}>
+                <BarChart data={chartData}>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
@@ -400,6 +436,7 @@ export default function ReportsPage() {
                     }}
                     axisLine={false}
                     tickLine={false}
+                    interval={0}
                   />
 
                   <YAxis
@@ -423,21 +460,34 @@ export default function ReportsPage() {
                     width={35}
                   />
 
-                  <Tooltip />
+                  <Tooltip
+                    formatter={(value, name) =>
+                      name === "revenue"
+                        ? formatCurrency(
+                            Number(value ?? 0)
+                          )
+                        : Number(
+                            value ?? 0
+                          ).toLocaleString(
+                            "id-ID"
+                          )
+                    }
+                  />
 
                   <Bar
                     yAxisId="left"
-                    dataKey="revenue"
+                    dataKey="orders"
                     fill="#fecaca"
                     radius={[4, 4, 0, 0]}
                   />
 
                   <Line
-                    yAxisId="right"
+                    yAxisId="left"
                     type="monotone"
                     dataKey="orders"
                     stroke="#ef4444"
                     strokeWidth={2}
+                    dot={{ r: 3 }}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -445,6 +495,7 @@ export default function ReportsPage() {
           </div>
 
           {/* BEST MENU */}
+
           <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <h2 className="mb-4 text-[14px] font-bold">
               Menu Terlaris
@@ -473,6 +524,17 @@ export default function ReportsPage() {
                 </thead>
 
                 <tbody>
+                  {bestMenus.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-6 text-center text-[11px] text-gray-400"
+                      >
+                        Belum ada penjualan pada periode ini.
+                      </td>
+                    </tr>
+                  )}
+
                   {bestMenus.map(
                     (item, index) => (
                       <tr
@@ -485,13 +547,20 @@ export default function ReportsPage() {
 
                         <td className="border-b border-gray-100 px-2 py-2.5">
                           <div className="flex items-center gap-2">
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              width={30}
-                              height={30}
-                              className="h-[30px] w-[30px] rounded-lg object-cover"
-                            />
+                            {item.image ? (
+                              <Image
+                                unoptimized
+                                src={getImageUrl(
+                                  item.image
+                                )}
+                                alt={item.name}
+                                width={30}
+                                height={30}
+                                className="h-[30px] w-[30px] rounded-lg object-cover"
+                              />
+                            ) : (
+                              <span className="h-[30px] w-[30px] rounded-lg bg-gray-100" />
+                            )}
 
                             <span className="font-medium text-gray-800">
                               {item.name}
@@ -518,6 +587,7 @@ export default function ReportsPage() {
         </div>
 
         {/* CATEGORY */}
+
         <div className="mt-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
           <h2 className="mb-4 text-[14px] font-bold">
             Pendapatan per Kategori
@@ -537,19 +607,10 @@ export default function ReportsPage() {
                     outerRadius={78}
                   >
                     {categories.map(
-                      (
-                        category,
-                        index
-                      ) => (
+                      (category, index) => (
                         <Cell
-                          key={
-                            category.name
-                          }
-                          fill={
-                            pieColors[
-                              index
-                            ]
-                          }
+                          key={category.name}
+                          fill={pieColors[index]}
                         />
                       )
                     )}
@@ -570,9 +631,7 @@ export default function ReportsPage() {
                         className="h-3 w-3 rounded-full"
                         style={{
                           backgroundColor:
-                            pieColors[
-                              index
-                            ],
+                            pieColors[index],
                         }}
                       />
 
@@ -580,7 +639,12 @@ export default function ReportsPage() {
                     </div>
 
                     <span className="text-[11px] font-bold text-gray-800">
-                      {category.value}%
+                      {category.value.toLocaleString(
+                        "id-ID",
+                        {
+                          maximumFractionDigits: 1,
+                        }
+                      )}%
                     </span>
                   </div>
                 )
