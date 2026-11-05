@@ -40,6 +40,42 @@ const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 ).replace(/\/+$/, "");
 
+
+function getOrderImageUrl(
+  image: string | null
+): string {
+  if (!image) return "";
+
+  const value = image.trim();
+
+  if (!value) return "";
+
+  // Jika sudah URL lengkap, jangan diubah.
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("data:")
+  ) {
+    return value;
+  }
+
+  // Gambar upload dari backend Laragon.
+  if (
+    value.startsWith("/uploads/") ||
+    value.startsWith("uploads/")
+  ) {
+    return `${API_BASE_URL}/${value.replace(/^\/+/, "")}`;
+  }
+
+  // Gambar dari folder public frontend Next.js.
+  if (value.startsWith("/")) {
+    return value;
+  }
+
+  // Path relatif gambar frontend.
+  return `/${value}`;
+}
+
 const QUICK_PERIODS = [
   { value: "semua", label: "Semua Tanggal" },
   { value: "hariini", label: "Hari Ini" },
@@ -175,7 +211,7 @@ function getStatusClass(status: OrderStatus): string {
       return "bg-blue-100 text-blue-700";
 
     case "Siap":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-purple-100 text-purple-700";
 
     case "Selesai":
       return "bg-green-100 text-green-700";
@@ -684,7 +720,7 @@ export default function OrdersPage() {
                         <div className="flex items-center gap-3">
                           {order.image ? (
                             <img
-                              src={order.image}
+                             src={getOrderImageUrl(order.image)}
                               alt={order.menu || "Foto menu"}
                               className="h-[36px] w-[36px] rounded-lg border border-gray-100 object-cover"
                             />

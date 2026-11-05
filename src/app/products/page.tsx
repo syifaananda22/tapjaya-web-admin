@@ -158,71 +158,64 @@ export default function ProductsPage() {
 
   const filteredProducts = useMemo(
     () => {
-      const keyword =
-        search.toLowerCase();
+      const keyword = search.toLowerCase();
 
-      return products.filter(
-        (product) => {
-          const matchSearch =
-            product.name
-              .toLowerCase()
-              .includes(keyword);
+      return products.filter((product) => {
+        const matchSearch =
+          product.name
+            .toLowerCase()
+            .includes(keyword);
 
-          const matchCategory =
-            category === "Semua" ||
-            product.category === category;
+        const matchCategory =
+          category === "Semua" ||
+          product.category === category;
 
-          const created =
-            productDate(product.created_at);
+        const created =
+          productDate(product.created_at);
 
-          const matchDate =
-            !appliedDateRange ||
-            (
-              created >= appliedDateRange.startDate &&
-              created <= appliedDateRange.endDate
-            );
-
-          return (
-            matchSearch &&
-            matchCategory &&
-            matchDate &&
-            Boolean(product.is_active)
+        const matchDate =
+          !appliedDateRange ||
+          (
+            created >= appliedDateRange.startDate &&
+            created <= appliedDateRange.endDate
           );
-        }
-      );
+
+        return (
+          matchSearch &&
+          matchCategory &&
+          matchDate &&
+          Boolean(product.is_active)
+        );
+      });
     },
     [products, search, category, appliedDateRange]
   );
 
-  const formatCurrency = (
-    value: number
-  ) =>
+  const formatCurrency = (value: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(value);
 
-  const getCategoryClass = (
-    value: string
-  ) => {
-    switch (value) {
-      case "Makanan":
-        return "bg-red-50 text-red-500";
+  const getCategoryClass = (value: string) => {
+  switch (value) {
+    case "Makanan":
+      return "bg-orange-50 text-orange-600";
 
-      case "Minuman":
-        return "bg-blue-50 text-blue-500";
+    case "Minuman":
+      return "bg-blue-50 text-blue-500";
 
-      case "Kopi":
-        return "bg-orange-50 text-orange-500";
+    case "Kopi":
+      return "bg-orange-50 text-orange-500";
 
-      case "Snack":
-        return "bg-yellow-50 text-yellow-600";
+    case "Snack":
+      return "bg-yellow-50 text-yellow-600";
 
-      default:
-        return "";
-    }
-  };
+    default:
+      return "";
+  }
+};
 
   /* ======================
      OPEN ADD MODAL
@@ -240,9 +233,7 @@ export default function ProductsPage() {
      OPEN EDIT MODAL
   ====================== */
 
-  const openEditModal = (
-    product: Product
-  ) => {
+  const openEditModal = (product: Product) => {
     setEditingId(product.id);
     setEditingProduct(product);
 
@@ -266,8 +257,7 @@ export default function ProductsPage() {
   const handleImageUpload = (
     event: ChangeEvent<HTMLInputElement>
   ) => {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
@@ -304,11 +294,9 @@ export default function ProductsPage() {
         return;
       }
 
-      const imageData = reader.result;
-
       setForm((prev) => ({
         ...prev,
-        image: imageData,
+        image: reader.result as string,
       }));
     };
 
@@ -336,14 +324,28 @@ export default function ProductsPage() {
     const price = Number(form.price);
     const stock = Number(form.stock);
 
+    /* REVISI DOSEN:
+       HARGA MINIMAL 10.000
+       HARGA MAKSIMAL 100.000.000
+    */
+
     if (
-      !Number.isFinite(price) ||
-      price < 0 ||
+      !Number.isInteger(price) ||
+      price < 10000 ||
+      price > 100000000
+    ) {
+      window.alert(
+        "Harga minimal Rp10.000 dan maksimal Rp100.000.000."
+      );
+      return;
+    }
+
+    if (
       !Number.isInteger(stock) ||
       stock < 0
     ) {
       window.alert(
-        "Harga atau stok tidak valid."
+        "Stok harus berupa bilangan bulat minimal 0."
       );
       return;
     }
@@ -410,9 +412,7 @@ export default function ProductsPage() {
      DELETE PRODUCT
   ====================== */
 
-  const handleDelete = async (
-    id: number
-  ) => {
+  const handleDelete = async (id: number) => {
     const confirmed =
       window.confirm("Hapus menu ini?");
 
@@ -489,8 +489,7 @@ export default function ProductsPage() {
               <CalendarDays size={15} />
 
               <span className="flex-1 text-left">
-                {startDate} -{" "}
-                {endDate}
+                {startDate} - {endDate}
               </span>
 
               <ChevronDown size={13} />
@@ -628,86 +627,82 @@ export default function ProductsPage() {
               </thead>
 
               <tbody>
-                {filteredProducts.map(
-                  (product) => (
-                    <tr
-                      key={product.id}
-                      className="text-[11px] text-gray-700 transition hover:bg-gray-50"
-                    >
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        <div className="flex items-center gap-3">
-                          {product.image ? (
-                            <Image
-                              src={imageUrl(product.image)}
-                              alt={product.name}
-                              width={40}
-                              height={40}
-                              unoptimized
-                              className="h-[40px] w-[40px] rounded-lg object-cover"
+                {filteredProducts.map((product) => (
+                  <tr
+                    key={product.id}
+                    className="text-[11px] text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        {product.image ? (
+                          <Image
+                            src={imageUrl(product.image)}
+                            alt={product.name}
+                            width={40}
+                            height={40}
+                            unoptimized
+                            className="h-[40px] w-[40px] rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-gray-100">
+                            <ImagePlus
+                              size={18}
+                              className="text-gray-400"
                             />
-                          ) : (
-                            <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-gray-100">
-                              <ImagePlus
-                                size={18}
-                                className="text-gray-400"
-                              />
-                            </div>
-                          )}
-
-                          <span className="font-medium text-gray-800">
-                            {product.name}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        <span
-                          className={`inline-flex min-w-[68px] justify-center rounded-full px-3 py-1 text-[9px] font-medium ${getCategoryClass(
-                            product.category
-                          )}`}
-                        >
-                          {product.category}
-                        </span>
-                      </td>
-
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        {formatCurrency(
-                          product.price
+                          </div>
                         )}
-                      </td>
 
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        {product.stock}
-                      </td>
+                        <span className="font-medium text-gray-800">
+                          {product.name}
+                        </span>
+                      </div>
+                    </td>
 
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditModal(product)
-                            }
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
-                          >
-                            <Pencil size={14} />
-                          </button>
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      <span
+                        className={`inline-flex min-w-[68px] justify-center rounded-full px-3 py-1 text-[9px] font-medium ${getCategoryClass(
+                          product.category
+                        )}`}
+                      >
+                        {product.category}
+                      </span>
+                    </td>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void handleDelete(
-                                product.id
-                              )
-                            }
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                )}
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      {formatCurrency(product.price)}
+                    </td>
+
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      {product.stock}
+                    </td>
+
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openEditModal(product)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
+                        >
+                          <Pencil size={14} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleDelete(
+                              product.id
+                            )
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
 
                 {filteredProducts.length === 0 && (
                   <tr>
@@ -747,8 +742,7 @@ export default function ProductsPage() {
                 </h2>
 
                 <p className="mt-1 text-[10px] text-gray-500">
-                  Lengkapi informasi
-                  menu.
+                  Lengkapi informasi menu.
                 </p>
               </div>
 
@@ -819,7 +813,7 @@ export default function ProductsPage() {
                 </select>
               </div>
 
-              {/* PRICE STOCK */}
+              {/* PRICE & STOCK */}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -829,7 +823,9 @@ export default function ProductsPage() {
 
                   <input
                     type="number"
-                    min="0"
+                    min={10000}
+                    max={100000000}
+                    step={1}
                     value={form.price}
                     onChange={(e) =>
                       setForm({
@@ -861,16 +857,14 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {/* =================
-                  IMAGE UPLOAD
-              ================= */}
+              {/* IMAGE UPLOAD */}
 
               <div>
                 <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
                   Gambar Menu
                 </label>
 
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-[10px] font-medium text-gray-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-500">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-4 text-[10px] font-medium text-gray-600 transition hover:border-red-400 hover:bg-red-50">
                   <Upload size={16} />
 
                   {form.image
@@ -885,7 +879,7 @@ export default function ProductsPage() {
                   />
                 </label>
 
-                <p className="mt-1.5 text-[8px] text-gray-400">
+                <p className="mt-3 flex h-[90px] items-center justify-center rounded-lg border border-gray-200 bg-white">
                   JPG, PNG atau WEBP.
                   Maksimal 2 MB.
                 </p>
@@ -910,15 +904,12 @@ export default function ProductsPage() {
 
                       <div>
                         <p className="text-[10px] font-semibold text-gray-700">
-                          Gambar siap
-                          digunakan
+                          Gambar siap digunakan
                         </p>
 
                         <p className="mt-1 text-[8px] text-gray-400">
-                          Klik Ganti
-                          Gambar jika
-                          ingin memilih
-                          foto lain.
+                          Klik Ganti Gambar jika
+                          ingin memilih foto lain.
                         </p>
                       </div>
                     </div>
