@@ -36,7 +36,7 @@ const menus = [
   },
   {
     name: "Pengaturan",
-    href: "/settings",
+    href: "settings",
     icon: Settings,
   },
 ];
