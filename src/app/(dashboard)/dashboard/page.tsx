@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -56,7 +57,10 @@ type LatestOrder = {
 
 type DashboardApiData = {
   period?: DashboardPeriod;
-  dateRange?: { startDate: string; endDate: string } | null;
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+  } | null;
   stats: {
     totalOrders: number;
     totalRevenue: number;
@@ -87,11 +91,11 @@ const periodOptions: {
   value: DashboardPeriod;
   label: string;
 }[] = [
-    { value: "7hari", label: "7 Hari" },
-    { value: "1bulan", label: "1 Bulan" },
-    { value: "6bulan", label: "6 Bulan" },
-    { value: "1tahun", label: "1 Tahun" },
-  ];
+  { value: "7hari", label: "7 Hari" },
+  { value: "1bulan", label: "1 Bulan" },
+  { value: "6bulan", label: "6 Bulan" },
+  { value: "1tahun", label: "1 Tahun" },
+];
 
 const EMPTY_DATA: DashboardViewData = {
   totalOrders: 0,
@@ -104,7 +108,16 @@ const EMPTY_DATA: DashboardViewData = {
   latestOrders: [],
 };
 
-const pieColors = ["#00b96b", "#168be5", "#ffbf19", "#ff7a1a"];
+const pieColors = [
+  "#00b96b",
+  "#168be5",
+  "#ffbf19",
+  "#ff7a1a",
+];
+
+// =====================================
+// AUTH TOKEN
+// =====================================
 
 function isJwt(value: string): boolean {
   return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(
@@ -150,8 +163,13 @@ function getStoredToken(): string | null {
           try {
             const parsed: unknown = JSON.parse(token);
 
-            if (typeof parsed === "object" && parsed !== null) {
-              const record = parsed as Record<string, unknown>;
+            if (
+              typeof parsed === "object" &&
+              parsed !== null
+            ) {
+              const record =
+                parsed as Record<string, unknown>;
+
               const nestedToken =
                 record.authToken ??
                 record.accessToken ??
@@ -171,25 +189,40 @@ function getStoredToken(): string | null {
         if (isJwt(token)) return token;
       }
 
-      for (let index = 0; index < storage.length; index++) {
+      for (
+        let index = 0;
+        index < storage.length;
+        index++
+      ) {
         const key = storage.key(index);
 
-        if (!key || tokenKeys.includes(key)) continue;
+        if (!key || tokenKeys.includes(key)) {
+          continue;
+        }
 
         const rawValue = storage.getItem(key);
         if (!rawValue) continue;
 
-        const token = rawValue.trim().replace(/^Bearer\s+/, "");
+        const token = rawValue
+          .trim()
+          .replace(/^Bearer\s+/, "");
 
         if (isJwt(token)) return token;
       }
     } catch (error) {
-      console.error("Gagal membaca penyimpanan token:", error);
+      console.error(
+        "Gagal membaca penyimpanan token:",
+        error
+      );
     }
   }
 
   return null;
 }
+
+// =====================================
+// FORMAT
+// =====================================
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("id-ID", {
@@ -204,7 +237,9 @@ function formatDateLabel(value: string): string {
 
   const date = new Date(`${value}T00:00:00`);
 
-  if (Number.isNaN(date.getTime())) return value;
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -217,14 +252,46 @@ function statusStyle(status: string): string {
   switch (status) {
     case "Selesai":
       return "bg-green-100 text-green-600";
+
     case "Siap":
       return "bg-emerald-100 text-emerald-600";
+
     case "Diproses":
       return "bg-blue-100 text-blue-600";
+
     default:
       return "bg-yellow-100 text-yellow-600";
   }
 }
+
+// =====================================
+// PERBAIKAN GAMBAR PRODUK
+// =====================================
+
+function getMenuImage(
+  menuName: string,
+  image: string | null | undefined
+): string {
+  const normalizedName = menuName
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
+  // Nasi Goreng OG memakai gambar lokal.
+  if (normalizedName === "nasi goreng og") {
+    return "/images/menu/nasi-goreng-og.jpg";
+  }
+
+  // Produk lain tetap memakai gambar API.
+  return (
+    image?.trim() ||
+    "/images/menu/bakmi-jaya.jpg"
+  );
+}
+
+// =====================================
+// DASHBOARD PAGE
+// =====================================
 
 export default function DashboardPage() {
   const [period, setPeriod] =
@@ -233,10 +300,20 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const [appliedStartDate, setAppliedStartDate] = useState("");
-  const [appliedEndDate, setAppliedEndDate] = useState("");
+  const [
+    appliedStartDate,
+    setAppliedStartDate,
+  ] = useState("");
 
-  const [showPeriodFilter, setShowPeriodFilter] = useState(false);
+  const [
+    appliedEndDate,
+    setAppliedEndDate,
+  ] = useState("");
+
+  const [
+    showPeriodFilter,
+    setShowPeriodFilter,
+  ] = useState(false);
 
   const [data, setData] =
     useState<DashboardViewData>(EMPTY_DATA);
@@ -247,15 +324,20 @@ export default function DashboardPage() {
   const [retryCount, setRetryCount] = useState(0);
 
   const periodLabel =
-    periodOptions.find((item) => item.value === period)?.label ??
-    "1 Bulan";
+    periodOptions.find(
+      (item) => item.value === period
+    )?.label ?? "1 Bulan";
 
   const filterLabel =
     appliedStartDate && appliedEndDate
-      ? `${formatDateLabel(appliedStartDate)} – ${formatDateLabel(
-        appliedEndDate
-      )}`
+      ? `${formatDateLabel(
+          appliedStartDate
+        )} – ${formatDateLabel(appliedEndDate)}`
       : periodLabel;
+
+  // =====================================
+  // FETCH DASHBOARD
+  // =====================================
 
   useEffect(() => {
     let cancelled = false;
@@ -275,9 +357,19 @@ export default function DashboardPage() {
 
         const params = new URLSearchParams();
 
-        if (appliedStartDate && appliedEndDate) {
-          params.set("startDate", appliedStartDate);
-          params.set("endDate", appliedEndDate);
+        if (
+          appliedStartDate &&
+          appliedEndDate
+        ) {
+          params.set(
+            "startDate",
+            appliedStartDate
+          );
+
+          params.set(
+            "endDate",
+            appliedEndDate
+          );
         } else {
           params.set("period", period);
         }
@@ -294,16 +386,17 @@ export default function DashboardPage() {
           }
         );
 
-        const result: unknown = await response
-          .json()
-          .catch(() => null);
+        const result: unknown =
+          await response
+            .json()
+            .catch(() => null);
 
         if (!response.ok) {
           const message =
             typeof result === "object" &&
-              result !== null &&
-              "message" in result &&
-              typeof result.message === "string"
+            result !== null &&
+            "message" in result &&
+            typeof result.message === "string"
               ? result.message
               : `Gagal mengambil data dashboard (${response.status}).`;
 
@@ -320,7 +413,8 @@ export default function DashboardPage() {
           );
         }
 
-        const apiData = result.data as DashboardApiData;
+        const apiData =
+          result.data as DashboardApiData;
 
         if (!apiData || !apiData.stats) {
           throw new Error(
@@ -331,24 +425,36 @@ export default function DashboardPage() {
         if (cancelled) return;
 
         setData({
-          totalOrders: Number(apiData.stats.totalOrders ?? 0),
-          totalRevenue: Number(apiData.stats.totalRevenue ?? 0),
+          totalOrders: Number(
+            apiData.stats.totalOrders ?? 0
+          ),
+          totalRevenue: Number(
+            apiData.stats.totalRevenue ?? 0
+          ),
           completedOrders: Number(
             apiData.stats.completedOrders ?? 0
           ),
           lowStock: Number(
             apiData.stats.lowStockProducts ?? 0
           ),
-          chart: Array.isArray(apiData.revenueData)
+          chart: Array.isArray(
+            apiData.revenueData
+          )
             ? apiData.revenueData
             : [],
-          categories: Array.isArray(apiData.categoryData)
+          categories: Array.isArray(
+            apiData.categoryData
+          )
             ? apiData.categoryData
             : [],
-          bestMenus: Array.isArray(apiData.bestMenus)
+          bestMenus: Array.isArray(
+            apiData.bestMenus
+          )
             ? apiData.bestMenus
             : [],
-          latestOrders: Array.isArray(apiData.latestOrders)
+          latestOrders: Array.isArray(
+            apiData.latestOrders
+          )
             ? apiData.latestOrders
             : [],
         });
@@ -361,7 +467,9 @@ export default function DashboardPage() {
             : "Terjadi kesalahan saat mengambil data dashboard."
         );
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -376,6 +484,10 @@ export default function DashboardPage() {
     appliedEndDate,
     retryCount,
   ]);
+
+  // =====================================
+  // FILTER TANGGAL
+  // =====================================
 
   function applyDateRange() {
     setDateError("");
@@ -399,7 +511,9 @@ export default function DashboardPage() {
     setShowPeriodFilter(false);
   }
 
-  function choosePeriod(value: DashboardPeriod) {
+  function choosePeriod(
+    value: DashboardPeriod
+  ) {
     setPeriod(value);
     setStartDate("");
     setEndDate("");
@@ -419,8 +533,14 @@ export default function DashboardPage() {
     setShowPeriodFilter(false);
   }
 
+  // =====================================
+  // TAMPILAN DASHBOARD
+  // =====================================
+
   return (
     <section className="min-w-0 flex-1 p-4 lg:p-5">
+      {/* HEADER */}
+
       <div className="mb-4 rounded-xl bg-white px-5 py-4 shadow-sm">
         <AdminHeader
           title="Dashboard"
@@ -428,11 +548,15 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* FILTER PERIODE */}
+
       <div className="relative mb-4 flex justify-end">
         <button
           type="button"
           onClick={() =>
-            setShowPeriodFilter((previous) => !previous)
+            setShowPeriodFilter(
+              (previous) => !previous
+            )
           }
           aria-expanded={showPeriodFilter}
           className="flex min-h-[42px] min-w-[220px] items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-medium text-gray-600 shadow-sm transition hover:bg-gray-50"
@@ -443,8 +567,11 @@ export default function DashboardPage() {
 
           <ChevronDown
             size={15}
-            className={`shrink-0 transition-transform ${showPeriodFilter ? "rotate-180" : ""
-              }`}
+            className={`shrink-0 transition-transform ${
+              showPeriodFilter
+                ? "rotate-180"
+                : ""
+            }`}
           />
         </button>
 
@@ -463,7 +590,9 @@ export default function DashboardPage() {
                   value={startDate}
                   max={endDate || undefined}
                   onChange={(event) => {
-                    setStartDate(event.target.value);
+                    setStartDate(
+                      event.target.value
+                    );
                     setDateError("");
                   }}
                   className="mt-1 block h-10 w-full rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
@@ -478,7 +607,9 @@ export default function DashboardPage() {
                   value={endDate}
                   min={startDate || undefined}
                   onChange={(event) => {
-                    setEndDate(event.target.value);
+                    setEndDate(
+                      event.target.value
+                    );
                     setDateError("");
                   }}
                   className="mt-1 block h-10 w-full rounded-lg border border-gray-200 bg-white px-2 text-xs text-gray-700 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
@@ -531,11 +662,14 @@ export default function DashboardPage() {
                   <button
                     key={item.value}
                     type="button"
-                    onClick={() => choosePeriod(item.value)}
-                    className={`h-10 rounded-lg border text-xs font-medium transition ${active
+                    onClick={() =>
+                      choosePeriod(item.value)
+                    }
+                    className={`h-10 rounded-lg border text-xs font-medium transition ${
+                      active
                         ? "border-[#e63131] bg-red-50 font-semibold text-[#e63131]"
                         : "border-gray-200 bg-white text-gray-600 hover:bg-red-50"
-                      }`}
+                    }`}
                   >
                     {item.label}
                   </button>
@@ -546,11 +680,15 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* LOADING */}
+
       {loading && (
         <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
           Memuat data dashboard dari database...
         </div>
       )}
+
+      {/* ERROR */}
 
       {error && (
         <div
@@ -566,7 +704,9 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() =>
-              setRetryCount((current) => current + 1)
+              setRetryCount(
+                (current) => current + 1
+              )
             }
             className="mt-2 font-semibold underline"
           >
@@ -575,10 +715,14 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* KARTU STATISTIK */}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Pesanan"
-          value={data.totalOrders.toLocaleString("id-ID")}
+          value={data.totalOrders.toLocaleString(
+            "id-ID"
+          )}
           description={`Periode ${filterLabel}`}
           icon={
             <div className="rounded-lg bg-red-50 p-2">
@@ -592,7 +736,9 @@ export default function DashboardPage() {
 
         <StatCard
           title="Total Pendapatan"
-          value={formatCurrency(data.totalRevenue)}
+          value={formatCurrency(
+            data.totalRevenue
+          )}
           description="Dari pesanan selesai"
           icon={
             <div className="rounded-lg bg-green-50 p-2">
@@ -606,7 +752,9 @@ export default function DashboardPage() {
 
         <StatCard
           title="Pesanan Selesai"
-          value={data.completedOrders.toLocaleString("id-ID")}
+          value={data.completedOrders.toLocaleString(
+            "id-ID"
+          )}
           description={`Periode ${filterLabel}`}
           icon={
             <div className="rounded-lg bg-blue-50 p-2">
@@ -634,7 +782,11 @@ export default function DashboardPage() {
         />
       </div>
 
+      {/* GRAFIK DAN KATEGORI */}
+
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[1.35fr_0.85fr]">
+        {/* GRAFIK PENDAPATAN */}
+
         <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -649,6 +801,7 @@ export default function DashboardPage() {
 
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-red-500" />
+
               <span className="text-[9px] text-gray-500">
                 Pendapatan
               </span>
@@ -657,7 +810,10 @@ export default function DashboardPage() {
 
           <div className="h-[240px]">
             {data.chart.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
                 <LineChart
                   data={data.chart}
                   margin={{
@@ -685,21 +841,30 @@ export default function DashboardPage() {
                     axisLine={false}
                     tickLine={false}
                     width={65}
-                    tickFormatter={(value: number) =>
+                    tickFormatter={(
+                      value: number
+                    ) =>
                       value >= 1_000_000
-                        ? `${(value / 1_000_000).toFixed(1)}jt`
-                        : `${Math.round(value / 1_000)}rb`
+                        ? `${(
+                            value / 1_000_000
+                          ).toFixed(1)}jt`
+                        : `${Math.round(
+                            value / 1_000
+                          )}rb`
                     }
                   />
 
                   <Tooltip
                     formatter={(value) => [
-                      formatCurrency(Number(value)),
+                      formatCurrency(
+                        Number(value)
+                      ),
                       "Pendapatan",
                     ]}
                     contentStyle={{
                       borderRadius: "8px",
-                      border: "1px solid #eeeeee",
+                      border:
+                        "1px solid #eeeeee",
                       fontSize: "10px",
                     }}
                   />
@@ -729,6 +894,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* KATEGORI MENU TERLARIS */}
+
         <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
           <div className="mb-3">
             <h2 className="text-[13px] font-bold">
@@ -743,7 +910,10 @@ export default function DashboardPage() {
           {data.categories.length > 0 ? (
             <div className="flex min-h-[240px] items-center justify-center">
               <div className="h-[165px] w-[165px] shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                >
                   <PieChart>
                     <Pie
                       data={data.categories}
@@ -753,14 +923,19 @@ export default function DashboardPage() {
                       dataKey="value"
                       nameKey="name"
                     >
-                      {data.categories.map((item, index) => (
-                        <Cell
-                          key={item.name}
-                          fill={
-                            pieColors[index % pieColors.length]
-                          }
-                        />
-                      ))}
+                      {data.categories.map(
+                        (item, index) => (
+                          <Cell
+                            key={item.name}
+                            fill={
+                              pieColors[
+                                index %
+                                  pieColors.length
+                              ]
+                            }
+                          />
+                        )
+                      )}
                     </Pie>
 
                     <Tooltip
@@ -774,25 +949,33 @@ export default function DashboardPage() {
               </div>
 
               <div className="ml-5 space-y-3">
-                {data.categories.map((item, index) => (
-                  <div
-                    key={item.name}
-                    className="flex min-w-[110px] justify-between gap-3 text-[10px]"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-[7px] w-[7px] rounded-full"
-                        style={{
-                          backgroundColor:
-                            pieColors[index % pieColors.length],
-                        }}
-                      />
-                      {item.name}
-                    </div>
+                {data.categories.map(
+                  (item, index) => (
+                    <div
+                      key={item.name}
+                      className="flex min-w-[110px] justify-between gap-3 text-[10px]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-[7px] w-[7px] rounded-full"
+                          style={{
+                            backgroundColor:
+                              pieColors[
+                                index %
+                                  pieColors.length
+                              ],
+                          }}
+                        />
 
-                    <strong>{item.value}%</strong>
-                  </div>
-                ))}
+                        {item.name}
+                      </div>
+
+                      <strong>
+                        {item.value}%
+                      </strong>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           ) : (
@@ -805,7 +988,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* MENU TERLARIS DAN PESANAN TERBARU */}
+
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        {/* MENU TERLARIS */}
+
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-[14px] font-bold text-black">
             Menu Terlaris — {filterLabel}
@@ -815,9 +1002,18 @@ export default function DashboardPage() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#f8f8f8] text-left text-[11px] font-semibold text-gray-500">
-                  <th className="rounded-l-lg px-3 py-3">#</th>
-                  <th className="px-3 py-3">Nama Menu</th>
-                  <th className="px-3 py-3">Terjual</th>
+                  <th className="rounded-l-lg px-3 py-3">
+                    #
+                  </th>
+
+                  <th className="px-3 py-3">
+                    Nama Menu
+                  </th>
+
+                  <th className="px-3 py-3">
+                    Terjual
+                  </th>
+
                   <th className="rounded-r-lg px-3 py-3">
                     Pendapatan
                   </th>
@@ -826,43 +1022,49 @@ export default function DashboardPage() {
 
               <tbody>
                 {data.bestMenus.length > 0 ? (
-                  data.bestMenus.map((menu, index) => (
-                    <tr
-                      key={`${menu.id}-${menu.name}`}
-                      className="text-[11px] text-gray-700 transition hover:bg-gray-50"
-                    >
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        {index + 1}
-                      </td>
+                  data.bestMenus.map(
+                    (menu, index) => (
+                      <tr
+                        key={`${menu.id}-${menu.name}`}
+                        className="text-[11px] text-gray-700 transition hover:bg-gray-50"
+                      >
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          {index + 1}
+                        </td>
 
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        <div className="flex items-center gap-3">
-                          <Image
-                            src={
-                              menu.image ||
-                              "/images/menu/bakmi-jaya.jpg"
-                            }
-                            alt={menu.name}
-                            width={34}
-                            height={34}
-                            className="h-[34px] w-[34px] rounded-lg object-cover"
-                          />
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          <div className="flex items-center gap-3">
+                            {/* GAMBAR SUDAH DIPERBAIKI */}
 
-                          <span className="font-medium text-gray-800">
-                            {menu.name}
-                          </span>
-                        </div>
-                      </td>
+                            <Image
+                              src={getMenuImage(
+                                menu.name,
+                                menu.image
+                              )}
+                              alt={menu.name}
+                              width={34}
+                              height={34}
+                              className="h-[34px] w-[34px] rounded-lg object-cover"
+                            />
 
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        {menu.sold}
-                      </td>
+                            <span className="font-medium text-gray-800">
+                              {menu.name}
+                            </span>
+                          </div>
+                        </td>
 
-                      <td className="border-b border-gray-100 px-3 py-2.5 font-medium">
-                        {formatCurrency(menu.revenue)}
-                      </td>
-                    </tr>
-                  ))
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          {menu.sold}
+                        </td>
+
+                        <td className="border-b border-gray-100 px-3 py-2.5 font-medium">
+                          {formatCurrency(
+                            menu.revenue
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  )
                 ) : (
                   <tr>
                     <td
@@ -879,6 +1081,8 @@ export default function DashboardPage() {
             </table>
           </div>
         </div>
+
+        {/* PESANAN TERBARU */}
 
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -898,10 +1102,22 @@ export default function DashboardPage() {
             <table className="w-full border-separate border-spacing-0">
               <thead>
                 <tr className="bg-[#f8f8f8] text-left text-[11px] font-semibold text-gray-500">
-                  <th className="rounded-l-lg px-3 py-3">#</th>
-                  <th className="px-3 py-3">Waktu</th>
-                  <th className="px-3 py-3">Menu</th>
-                  <th className="px-3 py-3">Total</th>
+                  <th className="rounded-l-lg px-3 py-3">
+                    #
+                  </th>
+
+                  <th className="px-3 py-3">
+                    Waktu
+                  </th>
+
+                  <th className="px-3 py-3">
+                    Menu
+                  </th>
+
+                  <th className="px-3 py-3">
+                    Total
+                  </th>
+
                   <th className="rounded-r-lg px-3 py-3">
                     Status
                   </th>
@@ -910,53 +1126,59 @@ export default function DashboardPage() {
 
               <tbody>
                 {data.latestOrders.length > 0 ? (
-                  data.latestOrders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="text-[11px] text-gray-700 transition hover:bg-gray-50"
-                    >
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        {order.id}
-                      </td>
+                  data.latestOrders.map(
+                    (order) => (
+                      <tr
+                        key={order.id}
+                        className="text-[11px] text-gray-700 transition hover:bg-gray-50"
+                      >
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          {order.id}
+                        </td>
 
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        {order.time}
-                      </td>
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          {order.time}
+                        </td>
 
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        <div className="flex items-center gap-3">
-                          <Image
-                            src={
-                              order.image ||
-                              "/images/menu/bakmi-jaya.jpg"
-                            }
-                            alt={order.menu}
-                            width={32}
-                            height={32}
-                            className="h-[32px] w-[32px] rounded-lg object-cover"
-                          />
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          <div className="flex items-center gap-3">
+                            {/* GAMBAR SUDAH DIPERBAIKI */}
 
-                          <span className="font-medium text-gray-800">
-                            {order.menu}
+                            <Image
+                              src={getMenuImage(
+                                order.menu,
+                                order.image
+                              )}
+                              alt={order.menu}
+                              width={32}
+                              height={32}
+                              className="h-[32px] w-[32px] rounded-lg object-cover"
+                            />
+
+                            <span className="font-medium text-gray-800">
+                              {order.menu}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          {formatCurrency(
+                            order.total
+                          )}
+                        </td>
+
+                        <td className="border-b border-gray-100 px-3 py-2.5">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-[9px] font-semibold ${statusStyle(
+                              order.status
+                            )}`}
+                          >
+                            {order.status}
                           </span>
-                        </div>
-                      </td>
-
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        {formatCurrency(order.total)}
-                      </td>
-
-                      <td className="border-b border-gray-100 px-3 py-2.5">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-[9px] font-semibold ${statusStyle(
-                            order.status
-                          )}`}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    )
+                  )
                 ) : (
                   <tr>
                     <td

@@ -18,7 +18,6 @@ import Sidebar from "@/components/Sidebar";
 import AdminHeader from "@/components/AdminHeader";
 
 import {
-  Bar,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -29,6 +28,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Bar,
 } from "recharts";
 
 type Period =
@@ -75,9 +75,9 @@ const EMPTY: ReportData = {
   chart: [],
   bestMenus: [],
   categories: [
+    "Coffee",
+    "Non Coffee",
     "Makanan",
-    "Minuman",
-    "Kopi",
     "Snack",
   ].map((name) => ({
     name,
@@ -96,20 +96,253 @@ const periodOptions: {
   { value: "year", label: "1 Tahun" },
 ];
 
+/* =====================================
+   IMAGE URL
+===================================== */
+
 function getImageUrl(value: string | null): string {
   if (!value) return "";
 
-  if (value.startsWith("/uploads/")) {
+  const image = value.trim();
+
+  if (!image) return "";
+
+  if (/^https?:\/\//i.test(image)) {
+    return image;
+  }
+
+  if (image.startsWith("/uploads/")) {
     const backend = (
       process.env.NEXT_PUBLIC_API_URL ||
       "http://localhost:5000"
     ).replace(/\/$/, "");
 
-    return `${backend}${value}`;
+    return `${backend}${image}`;
   }
 
-  return value;
+  if (image.startsWith("/")) {
+    return image;
+  }
+
+  if (image.startsWith("images/")) {
+    return `/${image}`;
+  }
+
+  const backend = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:5000"
+  ).replace(/\/$/, "");
+
+  return `${backend}/uploads/products/${image.replace(/^\/+/, "")}`;
 }
+
+/* =====================================
+   FALLBACK IMAGE BERDASARKAN NAMA MENU
+===================================== */
+
+function getFallbackMenuImage(name: string): string | null {
+  const value = name.trim().toLowerCase();
+
+  const imageByName: Array<[string[], string]> = [
+    [
+      ["chicken strip with mushroom bechamel", "chicken strip mushroom bechamel"],
+      "chicken-strip-with-mushroom-bechamel.jpg",
+    ],
+    [
+      ["chicken strip with creamy nashville", "chicken strip creamy nashville"],
+      "chicken-strip-creamy-nashville-sauce.jpg",
+    ],
+    [
+      ["butter rice chicken omelette teriyaki"],
+      "butter-rice-chicken-omelette-teriyaki.jpg",
+    ],
+    [
+      ["butter rice chicken omelette nashville"],
+      "butter-rice-chicken-omelette-nashville.jpg",
+    ],
+    [
+      ["honey butter rice chicken"],
+      "honey-butter-rice-chicken.jpg",
+    ],
+    [
+      ["classic popcorn", "popcorn"],
+      "classic-popcorn.jpg",
+    ],
+    [
+      ["cireng"],
+      "cireng.jpg",
+    ],
+    [
+      ["mie goreng"],
+      "mie-goreng.jpg",
+    ],
+    [
+      ["nasi goreng kalio"],
+      "nasi-goreng-kalio.jpg",
+    ],
+    [
+      ["nasi goreng"],
+      "nasi-goreng-og.jpg",
+    ],
+    [
+      ["bakmi jaya", "bakmi"],
+      "bakmi-jaya.jpg",
+    ],
+    [
+      ["milkshake mango"],
+      "milkshake-mango.jpg",
+    ],
+    [
+      ["kopi susu berjaya"],
+      "kopi-susu.jpg",
+    ],
+    [
+      ["kopi susu mantap"],
+      "kopi-susu-mantap-jaya.jpg",
+    ],
+    [
+      ["gyoza"],
+      "gyoza.jpg",
+    ],
+    [
+      ["jaya mix platter"],
+      "jaya-mix-platter.jpg",
+    ],
+    [
+      ["tahu bakso"],
+      "tahu-bakso.jpg",
+    ],
+    [
+      ["tahu cireng gejrot"],
+      "tahu-cireng-gejrot.jpg",
+    ],
+    [
+      ["handcut fries"],
+      "handcut-fries-coffee-sauce.jpg",
+    ],
+    [
+      ["potato wedges"],
+      "potato-wedges.jpg",
+    ],
+    [
+      ["margheritta", "margherita"],
+      "margheritta.jpg",
+    ],
+    [
+      ["nasi kandar ayam"],
+      "nasi-kandar-ayam.jpg",
+    ],
+    [
+      ["chicken mentai rice"],
+      "chicken-mentai-rice.jpg",
+    ],
+    [
+      ["chicken salted egg"],
+      "chicken-salted-egg.jpg",
+    ],
+  ];
+
+  const match = imageByName.find(([keywords]) =>
+    keywords.some((keyword) => value.includes(keyword))
+  );
+
+  return match
+    ? `/images/menu/${match[1]}`
+    : null;
+}
+
+/* =====================================
+   CATEGORY NORMALIZATION
+===================================== */
+
+function normalizeCategoryName(category: string): string {
+  const value = category
+    .trim()
+    .toLowerCase()
+    .replace(/[-_]+/g, " ");
+
+  if (value === "coffee" || value === "kopi") {
+    return "Coffee";
+  }
+
+  if (
+    value === "non coffee" ||
+    value === "minuman" ||
+    value === "beverage" ||
+    value === "noncoffee"
+  ) {
+    return "Non Coffee";
+  }
+
+  if (
+    value === "makanan" ||
+    value === "food"
+  ) {
+    return "Makanan";
+  }
+
+  if (
+    value === "snack" ||
+    value === "camilan"
+  ) {
+    return "Snack";
+  }
+
+  return "Lainnya";
+}
+
+/* =====================================
+   CATEGORY COLORS
+===================================== */
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Coffee: "#D97706",
+  "Non Coffee": "#10B981",
+  Makanan: "#F97316",
+  Snack: "#EAB308",
+  Lainnya: "#64748B",
+};
+
+/* =====================================
+   NORMALIZE CATEGORY DATA
+===================================== */
+
+function normalizeCategories(
+  source: ReportData["categories"]
+): ReportData["categories"] {
+  const totals = new Map<string, number>();
+
+  for (const item of source ?? []) {
+    const name = normalizeCategoryName(item.name || "");
+    const value = Number(item.value) || 0;
+
+    totals.set(
+      name,
+      (totals.get(name) || 0) + value
+    );
+  }
+
+  return [
+    "Coffee",
+    "Non Coffee",
+    "Makanan",
+    "Snack",
+    "Lainnya",
+  ]
+    .filter((name) =>
+      name === "Lainnya"
+        ? (totals.get(name) || 0) > 0
+        : true
+    )
+    .map((name) => ({
+      name,
+      value: totals.get(name) || 0,
+    }));
+}
+
+/* =====================================
+   CHANGE TEXT
+===================================== */
 
 function changeText(
   change: number | null,
@@ -120,14 +353,21 @@ function changeText(
   }
 
   const sign =
-    change > 0 ? "↑" :
-    change < 0 ? "↓" : "→";
+    change > 0
+      ? "↑"
+      : change < 0
+        ? "↓"
+        : "→";
 
   return `${sign} ${Math.abs(change).toLocaleString(
     "id-ID",
     { maximumFractionDigits: 1 }
   )}% ${comparison}`;
 }
+
+/* =====================================
+   PERIOD LABEL
+===================================== */
 
 function getPeriodLabel(period: Period): string {
   return (
@@ -136,6 +376,10 @@ function getPeriodLabel(period: Period): string {
     )?.label ?? "Laporan"
   );
 }
+
+/* =====================================
+   FILE DATE
+===================================== */
 
 function formatFileDate(date: Date): string {
   const year = date.getFullYear();
@@ -150,6 +394,10 @@ function formatFileDate(date: Date): string {
 
   return `${year}-${month}-${day}`;
 }
+
+/* =====================================
+   PERIOD DESCRIPTION
+===================================== */
 
 function getPeriodDescription(
   period: Period,
@@ -178,6 +426,7 @@ function getPeriodDescription(
     const day = (start.getDay() + 6) % 7;
 
     start.setDate(start.getDate() - day);
+
     end.setTime(start.getTime());
     end.setDate(end.getDate() + 6);
 
@@ -215,6 +464,10 @@ function getPeriodDescription(
   return `${dateText(start)} - ${dateText(end)}`;
 }
 
+/* =====================================
+   MAIN COMPONENT
+===================================== */
+
 export default function ReportsPage() {
   const [period, setPeriod] =
     useState<Period>("month");
@@ -234,9 +487,9 @@ export default function ReportsPage() {
   const [downloading, setDownloading] =
     useState<"pdf" | "excel" | null>(null);
 
-  /* =========================
+  /* =====================================
      LOAD DATA FROM BACKEND
-  ========================= */
+  ===================================== */
 
   useEffect(() => {
     let active = true;
@@ -277,14 +530,9 @@ export default function ReportsPage() {
   }, [period]);
 
   const bestMenus = data.bestMenus;
-  const categories = data.categories;
 
-  const pieColors = [
-    "#00b96b",
-    "#168be5",
-    "#ffb020",
-    "#ff7a1a",
-  ];
+  // Kategori dinormalisasi sebelum masuk ke chart.
+  const categories = normalizeCategories(data.categories);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -293,13 +541,10 @@ export default function ReportsPage() {
       maximumFractionDigits: 0,
     }).format(value);
 
-  /* =========================
+  /* =====================================
      CHART DATA
-  ========================= */
+  ===================================== */
 
-  // Khusus hari ini:
-  // Kelompok jam 08:30 sampai 22:30.
-  // Periode lainnya tetap mengikuti API.
   const chartData =
     period === "today"
       ? data.chart
@@ -331,9 +576,9 @@ export default function ReportsPage() {
           })
       : data.chart;
 
-  /* =========================
+  /* =====================================
      DOWNLOAD PDF
-  ========================= */
+  ===================================== */
 
   const downloadPDF = async (
     report: ReportData,
@@ -418,6 +663,7 @@ export default function ReportsPage() {
       pdf.setTextColor(50, 50, 50);
 
       const rightWidth = pdf.getTextWidth(right);
+
       const maxLeftWidth =
         contentWidth - rightWidth - 8;
 
@@ -651,7 +897,11 @@ export default function ReportsPage() {
     // KATEGORI
     sectionTitle("PENDAPATAN PER KATEGORI");
 
-    for (const item of report.categories) {
+    const pdfCategories = normalizeCategories(
+      report.categories
+    );
+
+    for (const item of pdfCategories) {
       row(
         item.name,
         `${item.value.toLocaleString(
@@ -714,495 +964,491 @@ export default function ReportsPage() {
     pdf.save(filename);
   };
 
-  /* =========================
+  /* =====================================
      DOWNLOAD EXCEL
-  ========================= */
+  ===================================== */
 
-  
-const downloadExcel = async (
-  report: ReportData,
-  selectedPeriod: Period
-) => {
-  const { Workbook } = await import("exceljs");
-
-  const workbook = new Workbook();
-  const now = new Date();
-
-  workbook.creator = "TAP JAYA";
-  workbook.subject = "Laporan Keuangan TAP JAYA";
-  workbook.title = "Laporan Keuangan TAP JAYA";
-  workbook.created = now;
-
-  const RED = "E63131";
-  const DARK_RED = "B91C1C";
-  const WHITE = "FFFFFF";
-  const DARK = "1F2937";
-  const GRAY = "6B7280";
-  const LIGHT = "F9FAFB";
-  const BORDER = "E5E7EB";
-  const GREEN = "15803D";
-
-  const rupiahFormat = '"Rp" #,##0';
-  const numberFormat = '#,##0';
-  const percentFormat = '0.00"%"';
-
-  const periodLabel = getPeriodLabel(selectedPeriod);
-  const periodDescription =
-    getPeriodDescription(selectedPeriod, now);
-
-  // Membuat worksheet dengan judul dan header TAP JAYA.
-  const createSheet = (
-    name: string,
-    headers: string[],
-    widths: number[]
+  const downloadExcel = async (
+    report: ReportData,
+    selectedPeriod: Period
   ) => {
-    const sheet = workbook.addWorksheet(name, {
-      pageSetup: {
-        paperSize: 9,
-        orientation: "landscape",
-        fitToPage: true,
-        fitToWidth: 1,
-        fitToHeight: 0,
-      },
-    });
+    const { Workbook } = await import("exceljs");
 
-    sheet.columns = widths.map((width) => ({
-      width,
-    }));
+    const workbook = new Workbook();
+    const now = new Date();
 
-    const lastColumn = String.fromCharCode(
-      64 + headers.length
+    workbook.creator = "TAP JAYA";
+    workbook.subject = "Laporan Keuangan TAP JAYA";
+    workbook.title = "Laporan Keuangan TAP JAYA";
+    workbook.created = now;
+
+    const RED = "E63131";
+    const DARK_RED = "B91C1C";
+    const WHITE = "FFFFFF";
+    const DARK = "1F2937";
+    const LIGHT = "F9FAFB";
+    const BORDER = "E5E7EB";
+    const GREEN = "15803D";
+
+    const rupiahFormat = '"Rp" #,##0';
+    const numberFormat = "#,##0";
+    const percentFormat = '0.00"%"';
+
+    const periodLabel = getPeriodLabel(selectedPeriod);
+
+    const periodDescription =
+      getPeriodDescription(selectedPeriod, now);
+
+    // Kategori Excel mengikuti normalisasi yang sama.
+    const excelCategories = normalizeCategories(
+      report.categories
     );
 
-    // JUDUL UTAMA
-    sheet.mergeCells(`A1:${lastColumn}2`);
+    // Membuat worksheet dengan judul dan header TAP JAYA.
+    const createSheet = (
+      name: string,
+      headers: string[],
+      widths: number[]
+    ) => {
+      const sheet = workbook.addWorksheet(name, {
+        pageSetup: {
+          paperSize: 9,
+          orientation: "landscape",
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+        },
+      });
 
-    const titleCell = sheet.getCell("A1");
+      sheet.columns = widths.map((width) => ({
+        width,
+      }));
 
-    titleCell.value = "LAPORAN KEUANGAN TAP JAYA";
-    titleCell.font = {
-      name: "Calibri",
-      size: 17,
-      bold: true,
-      color: { argb: WHITE },
-    };
+      const lastColumn = String.fromCharCode(
+        64 + headers.length
+      );
 
-    titleCell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: RED },
-    };
+      // JUDUL UTAMA
+      sheet.mergeCells(`A1:${lastColumn}2`);
 
-    titleCell.alignment = {
-      vertical: "middle",
-      horizontal: "center",
-    };
+      const titleCell = sheet.getCell("A1");
 
-    sheet.getRow(1).height = 24;
-    sheet.getRow(2).height = 24;
+      titleCell.value = "LAPORAN KEUANGAN TAP JAYA";
+      titleCell.font = {
+        name: "Calibri",
+        size: 17,
+        bold: true,
+        color: { argb: WHITE },
+      };
 
-    // PERIODE
-    sheet.mergeCells(`A3:${lastColumn}3`);
+      titleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: RED },
+      };
 
-    const periodCell = sheet.getCell("A3");
+      titleCell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
 
-    periodCell.value =
-      `${periodLabel} | ${periodDescription}`;
+      sheet.getRow(1).height = 24;
+      sheet.getRow(2).height = 24;
 
-    periodCell.font = {
-      name: "Calibri",
-      size: 11,
-      bold: true,
-      color: { argb: DARK },
-    };
+      // PERIODE
+      sheet.mergeCells(`A3:${lastColumn}3`);
 
-    periodCell.alignment = {
-      horizontal: "center",
-      vertical: "middle",
-    };
+      const periodCell = sheet.getCell("A3");
 
-    sheet.getRow(3).height = 24;
+      periodCell.value =
+        `${periodLabel} | ${periodDescription}`;
 
-    // HEADER TABEL
-    const headerRow = sheet.getRow(5);
-
-    headerRow.values = headers;
-    headerRow.height = 28;
-
-    headerRow.eachCell((cell) => {
-      cell.font = {
+      periodCell.font = {
         name: "Calibri",
         size: 11,
         bold: true,
+        color: { argb: DARK },
+      };
+
+      periodCell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+
+      sheet.getRow(3).height = 24;
+
+      // HEADER TABEL
+      const headerRow = sheet.getRow(5);
+
+      headerRow.values = headers;
+      headerRow.height = 28;
+
+      headerRow.eachCell((cell) => {
+        cell.font = {
+          name: "Calibri",
+          size: 11,
+          bold: true,
+          color: { argb: WHITE },
+        };
+
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: DARK_RED },
+        };
+
+        cell.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+          wrapText: true,
+        };
+
+        cell.border = {
+          top: {
+            style: "thin",
+            color: { argb: BORDER },
+          },
+          bottom: {
+            style: "thin",
+            color: { argb: BORDER },
+          },
+          left: {
+            style: "thin",
+            color: { argb: BORDER },
+          },
+          right: {
+            style: "thin",
+            color: { argb: BORDER },
+          },
+        };
+      });
+
+      // Header tetap terlihat saat Excel di-scroll.
+      sheet.views = [
+        {
+          state: "frozen",
+          ySplit: 5,
+        },
+      ];
+
+      sheet.headerFooter.oddFooter =
+        "TAP JAYA | Halaman &P dari &N";
+
+      return sheet;
+    };
+
+    // Memberi format pada isi tabel.
+    const styleDataRows = (
+      sheet: ReturnType<typeof createSheet>,
+      startRow = 6
+    ) => {
+      for (
+        let rowIndex = startRow;
+        rowIndex <= sheet.rowCount;
+        rowIndex++
+      ) {
+        const row = sheet.getRow(rowIndex);
+
+        row.height = 24;
+
+        row.eachCell(
+          { includeEmpty: true },
+          (cell) => {
+            cell.font = {
+              name: "Calibri",
+              size: 11,
+              color: { argb: DARK },
+            };
+
+            cell.alignment = {
+              vertical: "middle",
+              wrapText: true,
+            };
+
+            if (rowIndex % 2 === 0) {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: LIGHT },
+              };
+            }
+
+            cell.border = {
+              bottom: {
+                style: "thin",
+                color: { argb: BORDER },
+              },
+            };
+          }
+        );
+      }
+    };
+
+    // =========================
+    // SHEET 1: RINGKASAN
+    // =========================
+
+    const summary = createSheet(
+      "Ringkasan",
+      ["Keterangan", "Nilai"],
+      [38, 28]
+    );
+
+    const summaryRows: Array<
+      [string, string | number]
+    > = [
+      ["Nama Usaha", "TAP JAYA"],
+      ["Periode", periodLabel],
+      ["Rentang Tanggal", periodDescription],
+      [
+        "Tanggal Download",
+        now.toLocaleString("id-ID"),
+      ],
+      ["Total Pendapatan", report.totalRevenue],
+      ["Total Pesanan", report.totalOrders],
+      ["Rata-rata Pesanan", report.averageOrder],
+      [
+        "Perubahan Pendapatan",
+        report.revenueChange ?? "-",
+      ],
+      [
+        "Perubahan Pesanan",
+        report.orderChange ?? "-",
+      ],
+      [
+        "Perubahan Rata-rata",
+        report.averageChange ?? "-",
+      ],
+    ];
+
+    for (const item of summaryRows) {
+      summary.addRow(item);
+    }
+
+    styleDataRows(summary);
+
+    summary.getCell("B10").numFmt = rupiahFormat;
+    summary.getCell("B11").numFmt = numberFormat;
+    summary.getCell("B12").numFmt = rupiahFormat;
+
+    for (const rowNumber of [13, 14, 15]) {
+      summary.getCell(`B${rowNumber}`).numFmt =
+        percentFormat;
+    }
+
+    // Tonjolkan nilai pendapatan.
+    for (const cellAddress of ["A10", "B10"]) {
+      const cell = summary.getCell(cellAddress);
+
+      cell.font = {
+        name: "Calibri",
+        size: 12,
+        bold: true,
+        color: { argb: GREEN },
+      };
+
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "F0FDF4" },
+      };
+    }
+
+    // =========================
+    // SHEET 2: RINCIAN PENDAPATAN
+    // =========================
+
+    const details = createSheet(
+      "Rincian Pendapatan",
+      [
+        "No.",
+        selectedPeriod === "today"
+          ? "Jam"
+          : "Periode",
+        "Jumlah Pesanan",
+        "Pendapatan (Rp)",
+      ],
+      [10, 28, 22, 28]
+    );
+
+    report.chart.forEach((item, index) => {
+      details.addRow([
+        index + 1,
+        item.label,
+        item.orders,
+        item.revenue,
+      ]);
+    });
+
+    styleDataRows(details);
+
+    for (
+      let i = 6;
+      i <= details.rowCount;
+      i++
+    ) {
+      details.getCell(`C${i}`).numFmt =
+        numberFormat;
+
+      details.getCell(`D${i}`).numFmt =
+        rupiahFormat;
+    }
+
+    const detailTotalRow = details.addRow([
+      "",
+      "TOTAL LAPORAN",
+      report.totalOrders,
+      report.totalRevenue,
+    ]);
+
+    detailTotalRow.eachCell((cell) => {
+      cell.font = {
+        name: "Calibri",
+        bold: true,
+        size: 11,
         color: { argb: WHITE },
       };
 
       cell.fill = {
         type: "pattern",
         pattern: "solid",
-        fgColor: { argb: DARK_RED },
+        fgColor: { argb: RED },
       };
 
       cell.alignment = {
-        horizontal: "center",
         vertical: "middle",
-        wrapText: true,
-      };
-
-      cell.border = {
-        top: {
-          style: "thin",
-          color: { argb: BORDER },
-        },
-        bottom: {
-          style: "thin",
-          color: { argb: BORDER },
-        },
-        left: {
-          style: "thin",
-          color: { argb: BORDER },
-        },
-        right: {
-          style: "thin",
-          color: { argb: BORDER },
-        },
       };
     });
 
-    // Header tetap terlihat saat Excel di-scroll.
-    sheet.views = [
-      {
-        state: "frozen",
-        ySplit: 5,
-      },
-    ];
+    detailTotalRow.height = 28;
 
-    sheet.headerFooter.oddFooter =
-      "TAP JAYA | Halaman &P dari &N";
+    detailTotalRow.getCell(3).numFmt =
+      numberFormat;
 
-    return sheet;
-  };
+    detailTotalRow.getCell(4).numFmt =
+      rupiahFormat;
 
-  // Memberi format pada isi tabel.
-  const styleDataRows = (
-    sheet: ReturnType<typeof createSheet>,
-    startRow = 6
-  ) => {
+    // =========================
+    // SHEET 3: MENU TERLARIS
+    // =========================
+
+    const menus = createSheet(
+      "Menu Terlaris",
+      [
+        "No.",
+        "Nama Menu",
+        "Jumlah Terjual",
+        "Pendapatan (Rp)",
+      ],
+      [10, 38, 22, 28]
+    );
+
+    report.bestMenus.forEach(
+      (item, index) => {
+        menus.addRow([
+          index + 1,
+          item.name,
+          item.sold,
+          item.revenue,
+        ]);
+      }
+    );
+
+    styleDataRows(menus);
+
     for (
-      let rowIndex = startRow;
-      rowIndex <= sheet.rowCount;
-      rowIndex++
+      let i = 6;
+      i <= menus.rowCount;
+      i++
     ) {
-      const row = sheet.getRow(rowIndex);
+      menus.getCell(`C${i}`).numFmt =
+        numberFormat;
 
-      row.height = 24;
-
-      row.eachCell(
-        { includeEmpty: true },
-        (cell) => {
-          cell.font = {
-            name: "Calibri",
-            size: 11,
-            color: { argb: DARK },
-          };
-
-          cell.alignment = {
-            vertical: "middle",
-            wrapText: true,
-          };
-
-          if (rowIndex % 2 === 0) {
-            cell.fill = {
-              type: "pattern",
-              pattern: "solid",
-              fgColor: { argb: LIGHT },
-            };
-          }
-
-          cell.border = {
-            bottom: {
-              style: "thin",
-              color: { argb: BORDER },
-            },
-          };
-        }
-      );
+      menus.getCell(`D${i}`).numFmt =
+        rupiahFormat;
     }
+
+    // =========================
+    // SHEET 4: KATEGORI
+    // =========================
+
+    const categoriesSheet = createSheet(
+      "Kategori",
+      [
+        "No.",
+        "Kategori Produk",
+        "Kontribusi Pendapatan (%)",
+      ],
+      [10, 32, 35]
+    );
+
+    excelCategories.forEach(
+      (item, index) => {
+        categoriesSheet.addRow([
+          index + 1,
+          item.name,
+          item.value,
+        ]);
+      }
+    );
+
+    styleDataRows(categoriesSheet);
+
+    for (
+      let i = 6;
+      i <= categoriesSheet.rowCount;
+      i++
+    ) {
+      categoriesSheet.getCell(`C${i}`).numFmt =
+        percentFormat;
+    }
+
+    // =========================
+    // DOWNLOAD FILE
+    // =========================
+
+    const buffer =
+      await workbook.xlsx.writeBuffer();
+
+    const bytes = new Uint8Array(
+      buffer.byteLength
+    );
+
+    bytes.set(new Uint8Array(buffer));
+
+    const blob = new Blob(
+      [bytes.buffer],
+      {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const anchor =
+      document.createElement("a");
+
+    const filename =
+      `Laporan_Keuangan_TAP_JAYA_` +
+      `${selectedPeriod}_` +
+      `${formatFileDate(now)}.xlsx`;
+
+    anchor.href = url;
+    anchor.download = filename;
+
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
   };
 
-  // =========================
-  // SHEET 1: RINGKASAN
-  // =========================
-
-  const summary = createSheet(
-    "Ringkasan",
-    ["Keterangan", "Nilai"],
-    [38, 28]
-  );
-
-  const summaryRows: Array<
-    [string, string | number]
-  > = [
-    ["Nama Usaha", "TAP JAYA"],
-    ["Periode", periodLabel],
-    ["Rentang Tanggal", periodDescription],
-    [
-      "Tanggal Download",
-      now.toLocaleString("id-ID"),
-    ],
-    ["Total Pendapatan", report.totalRevenue],
-    ["Total Pesanan", report.totalOrders],
-    ["Rata-rata Pesanan", report.averageOrder],
-    [
-      "Perubahan Pendapatan",
-      report.revenueChange ?? "-",
-    ],
-    [
-      "Perubahan Pesanan",
-      report.orderChange ?? "-",
-    ],
-    [
-      "Perubahan Rata-rata",
-      report.averageChange ?? "-",
-    ],
-  ];
-
-  for (const item of summaryRows) {
-    summary.addRow(item);
-  }
-
-  styleDataRows(summary);
-
-  // Row 10: Total Pendapatan
-  summary.getCell("B10").numFmt = rupiahFormat;
-
-  // Row 11: Total Pesanan
-  summary.getCell("B11").numFmt = numberFormat;
-
-  // Row 12: Rata-rata Pesanan
-  summary.getCell("B12").numFmt = rupiahFormat;
-
-  // Row 13-15: Persentase
-  for (const rowNumber of [13, 14, 15]) {
-    summary.getCell(`B${rowNumber}`).numFmt =
-      percentFormat;
-  }
-
-  // Tonjolkan nilai pendapatan.
-  for (const cellAddress of ["A10", "B10"]) {
-    const cell = summary.getCell(cellAddress);
-
-    cell.font = {
-      name: "Calibri",
-      size: 12,
-      bold: true,
-      color: { argb: GREEN },
-    };
-
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "F0FDF4" },
-    };
-  }
-
-  // =========================
-  // SHEET 2: RINCIAN PENDAPATAN
-  // =========================
-
-  const details = createSheet(
-    "Rincian Pendapatan",
-    [
-      "No.",
-      selectedPeriod === "today"
-        ? "Jam"
-        : "Periode",
-      "Jumlah Pesanan",
-      "Pendapatan (Rp)",
-    ],
-    [10, 28, 22, 28]
-  );
-
-  report.chart.forEach((item, index) => {
-    details.addRow([
-      index + 1,
-      item.label,
-      item.orders,
-      item.revenue,
-    ]);
-  });
-
-  styleDataRows(details);
-
-  for (
-    let i = 6;
-    i <= details.rowCount;
-    i++
-  ) {
-    details.getCell(`C${i}`).numFmt =
-      numberFormat;
-
-    details.getCell(`D${i}`).numFmt =
-      rupiahFormat;
-  }
-
-  // TOTAL dari ringkasan API.
-  const detailTotalRow = details.addRow([
-    "",
-    "TOTAL LAPORAN",
-    report.totalOrders,
-    report.totalRevenue,
-  ]);
-
-  detailTotalRow.eachCell((cell) => {
-    cell.font = {
-      name: "Calibri",
-      bold: true,
-      size: 11,
-      color: { argb: WHITE },
-    };
-
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: RED },
-    };
-
-    cell.alignment = {
-      vertical: "middle",
-    };
-  });
-
-  detailTotalRow.height = 28;
-  detailTotalRow.getCell(3).numFmt =
-    numberFormat;
-
-  detailTotalRow.getCell(4).numFmt =
-    rupiahFormat;
-
-  // =========================
-  // SHEET 3: MENU TERLARIS
-  // =========================
-
-  const menus = createSheet(
-    "Menu Terlaris",
-    [
-      "No.",
-      "Nama Menu",
-      "Jumlah Terjual",
-      "Pendapatan (Rp)",
-    ],
-    [10, 38, 22, 28]
-  );
-
-  report.bestMenus.forEach(
-    (item, index) => {
-      menus.addRow([
-        index + 1,
-        item.name,
-        item.sold,
-        item.revenue,
-      ]);
-    }
-  );
-
-  styleDataRows(menus);
-
-  for (
-    let i = 6;
-    i <= menus.rowCount;
-    i++
-  ) {
-    menus.getCell(`C${i}`).numFmt =
-      numberFormat;
-
-    menus.getCell(`D${i}`).numFmt =
-      rupiahFormat;
-  }
-
-  // =========================
-  // SHEET 4: KATEGORI
-  // =========================
-
-  const categoriesSheet = createSheet(
-    "Kategori",
-    [
-      "No.",
-      "Kategori Produk",
-      "Kontribusi Pendapatan (%)",
-    ],
-    [10, 32, 35]
-  );
-
-  report.categories.forEach(
-    (item, index) => {
-      categoriesSheet.addRow([
-        index + 1,
-        item.name,
-        item.value,
-      ]);
-    }
-  );
-
-  styleDataRows(categoriesSheet);
-
-  for (
-    let i = 6;
-    i <= categoriesSheet.rowCount;
-    i++
-  ) {
-    categoriesSheet.getCell(`C${i}`).numFmt =
-      percentFormat;
-  }
-
-  // =========================
-  // DOWNLOAD FILE
-  // =========================
-
-  const buffer =
-    await workbook.xlsx.writeBuffer();
-
-  // Buat ArrayBuffer baru agar kompatibel
-  // dengan Blob di browser dan TypeScript.
-  const bytes = new Uint8Array(
-    buffer.byteLength
-  );
-
-  bytes.set(new Uint8Array(buffer));
-
-  const blob = new Blob(
-    [bytes.buffer],
-    {
-      type:
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    }
-  );
-
-  const url = URL.createObjectURL(blob);
-
-  const anchor =
-    document.createElement("a");
-
-  const filename =
-    `Laporan_Keuangan_TAP_JAYA_` +
-    `${selectedPeriod}_` +
-    `${formatFileDate(now)}.xlsx`;
-
-  anchor.href = url;
-  anchor.download = filename;
-
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-
-  window.setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000);
-};
-
-  /* =========================
+  /* =====================================
      HANDLE DOWNLOAD
-  ========================= */
+  ===================================== */
 
   const handleDownload = async (
     format: "pdf" | "excel"
@@ -1245,6 +1491,10 @@ const downloadExcel = async (
     !error &&
     loadedPeriod === period &&
     downloading === null;
+
+  /* =====================================
+     RENDER
+  ===================================== */
 
   return (
     <main className="flex min-h-screen bg-[#f5f5f5]">
@@ -1589,19 +1839,46 @@ const downloadExcel = async (
 
                         <td className="border-b border-gray-100 px-2 py-2.5">
                           <div className="flex items-center gap-2">
-                            {item.image ? (
+                            {item.image ||
+                            getFallbackMenuImage(item.name) ? (
                               <Image
                                 unoptimized
-                                src={getImageUrl(
-                                  item.image
-                                )}
+                                src={
+                                  getImageUrl(item.image) ||
+                                  getFallbackMenuImage(item.name) ||
+                                  ""
+                                }
                                 alt={item.name}
                                 width={30}
                                 height={30}
                                 className="h-[30px] w-[30px] rounded-lg object-cover"
+                                onError={(event) => {
+                                  const fallback =
+                                    getFallbackMenuImage(item.name);
+
+                                  const fallbackUrl = fallback
+                                    ? new URL(
+                                        fallback,
+                                        window.location.origin
+                                      ).href
+                                    : "";
+
+                                  if (
+                                    fallbackUrl &&
+                                    event.currentTarget.src !== fallbackUrl
+                                  ) {
+                                    event.currentTarget.src =
+                                      fallbackUrl;
+                                  } else {
+                                    event.currentTarget.style.visibility =
+                                      "hidden";
+                                  }
+                                }}
                               />
                             ) : (
-                              <span className="h-[30px] w-[30px] rounded-lg bg-gray-100" />
+                              <span className="flex h-[30px] w-[30px] items-center justify-center rounded-lg bg-gray-100 text-[8px] text-gray-400">
+                                Menu
+                              </span>
                             )}
 
                             <span className="font-medium text-gray-800">
@@ -1645,25 +1922,38 @@ const downloadExcel = async (
                   <Pie
                     data={categories}
                     dataKey="value"
+                    nameKey="name"
                     innerRadius={52}
                     outerRadius={78}
                   >
-                    {categories.map(
-                      (category, index) => (
-                        <Cell
-                          key={category.name}
-                          fill={pieColors[index]}
-                        />
-                      )
-                    )}
+                    {categories.map((category) => (
+                      <Cell
+                        key={category.name}
+                        fill={
+                          CATEGORY_COLORS[category.name] ||
+                          CATEGORY_COLORS.Lainnya
+                        }
+                      />
+                    ))}
                   </Pie>
+
+                  <Tooltip
+                    formatter={(value) =>
+                      `${Number(value ?? 0).toLocaleString(
+                        "id-ID",
+                        {
+                          maximumFractionDigits: 1,
+                        }
+                      )}%`
+                    }
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
 
             <div className="w-full flex-1">
               {categories.map(
-                (category, index) => (
+                (category) => (
                   <div
                     key={category.name}
                     className="flex items-center justify-between border-b border-gray-100 py-3 last:border-none"
@@ -1673,7 +1963,8 @@ const downloadExcel = async (
                         className="h-3 w-3 rounded-full"
                         style={{
                           backgroundColor:
-                            pieColors[index],
+                            CATEGORY_COLORS[category.name] ||
+                            CATEGORY_COLORS.Lainnya,
                         }}
                       />
 

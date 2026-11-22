@@ -33,9 +33,9 @@ import type {
 } from "@/types/product";
 
 type ProductCategory =
+  | "Coffee"
+  | "Non Coffee"
   | "Makanan"
-  | "Minuman"
-  | "Kopi"
   | "Snack";
 
 type ProductForm = {
@@ -54,19 +54,62 @@ const emptyForm: ProductForm = {
   image: "",
 };
 
+// =====================================
+// IMAGE URL
+// =====================================
+
 function imageUrl(image: string | null): string {
   if (!image) return "";
 
-  if (image.startsWith("/uploads/")) {
-    const backend = (
-      process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:5000"
-    ).replace(/\/$/, "");
+  const value = image.trim();
+  if (!value) return "";
 
-    return `${backend}${image}`;
+  // Preview lokal dari FileReader.
+  if (value.startsWith("data:")) return value;
+
+  // URL eksternal yang sudah lengkap.
+  if (/^https?:\/\//i.test(value)) return value;
+
+  // Gambar hasil upload disajikan oleh backend.
+  if (value.startsWith("/uploads/") || value.startsWith("uploads/")) {
+    const backend = (
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+    )
+      .replace(/\/api\/?$/, "")
+      .replace(/\/$/, "");
+
+    const uploadPath = value.startsWith("/") ? value : `/${value}`;
+    return `${backend}${uploadPath}`;
   }
 
-  return image;
+  // Gambar lama di folder public frontend.
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+// =====================================
+// NORMALISASI KATEGORI
+// =====================================
+
+function normalizeCategory(value: string): ProductCategory | string {
+  switch (value.trim().toLowerCase()) {
+    case "kopi":
+    case "coffee":
+      return "Coffee";
+
+    case "minuman":
+    case "non coffee":
+    case "non-coffee":
+      return "Non Coffee";
+
+    case "makanan":
+      return "Makanan";
+
+    case "snack":
+      return "Snack";
+
+    default:
+      return value.trim();
+  }
 }
 
 function productDate(value?: string): string {
@@ -74,122 +117,135 @@ function productDate(value?: string): string {
   return value.slice(0, 10);
 }
 
+// =====================================
+// MAIN PAGE
+// =====================================
+
 export default function ProductsPage() {
-  const [products, setProducts] =
-    useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("Semua");
 
-  const [error, setError] =
-    useState("");
+  // PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const [saving, setSaving] =
-    useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const [search, setSearch] =
-    useState("");
+  const [startDate, setStartDate] = useState("2026-10-02");
+  const [endDate, setEndDate] = useState("2026-10-02");
 
-  const [category, setCategory] =
-    useState("Semua");
+  const [showModal, setShowModal] = useState(false);
 
-  const [
-    showDateFilter,
-    setShowDateFilter,
-  ] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [startDate, setStartDate] =
-    useState("2026-10-02");
+  const [form, setForm] = useState<ProductForm>(emptyForm);
 
-  const [endDate, setEndDate] =
-    useState("2026-10-02");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
-  const [showModal, setShowModal] =
-    useState(false);
+  const [appliedDateRange, setAppliedDateRange] = useState<{
+    startDate: string;
+    endDate: string;
+  } | null>(null);
 
-  const [editingId, setEditingId] =
-    useState<number | null>(null);
+  // =====================================
+  // LOAD PRODUCTS FROM API
+  // =====================================
 
-  const [editingProduct, setEditingProduct] =
-    useState<Product | null>(null);
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-  const [form, setForm] =
-    useState<ProductForm>(emptyForm);
-
-  const [selectedImageFile, setSelectedImageFile] =
-    useState<File | null>(null);
-
-  const [appliedDateRange, setAppliedDateRange] =
-    useState<{
-      startDate: string;
-      endDate: string;
-    } | null>(null);
-
-  /* ======================
-     LOAD PRODUCTS FROM API
-  ====================== */
-
-  const loadProducts = useCallback(
-    async () => {
-      setLoading(true);
-      setError("");
-
-      try {
-        const result =
-          await productService.getAll();
-
-        setProducts(result.data);
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Gagal mengambil produk."
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+    try {
+      const result = await productService.getAll();
+      setProducts(result.data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengambil produk."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     void loadProducts();
   }, [loadProducts]);
 
-  const filteredProducts = useMemo(
-    () => {
-      const keyword = search.toLowerCase();
+  // =====================================
+  // FILTER PRODUCTS
+  // =====================================
 
-      return products.filter((product) => {
-        const matchSearch =
-          product.name
-            .toLowerCase()
-            .includes(keyword);
+  const filteredProducts = useMemo(() => {
+    const keyword = search.toLowerCase();
 
-        const matchCategory =
-          category === "Semua" ||
-          product.category === category;
+    return products.filter((product) => {
+      const matchSearch = product.name
+        .toLowerCase()
+        .includes(keyword);
 
-        const created =
-          productDate(product.created_at);
+      const matchCategory =
+        category === "Semua" ||
+        normalizeCategory(product.category) === category;
 
-        const matchDate =
-          !appliedDateRange ||
-          (
-            created >= appliedDateRange.startDate &&
-            created <= appliedDateRange.endDate
-          );
+      const created = productDate(product.created_at);
 
-        return (
-          matchSearch &&
-          matchCategory &&
-          matchDate &&
-          Boolean(product.is_active)
+      const matchDate =
+        !appliedDateRange ||
+        (
+          created >= appliedDateRange.startDate &&
+          created <= appliedDateRange.endDate
         );
-      });
-    },
-    [products, search, category, appliedDateRange]
+
+      return (
+        matchSearch &&
+        matchCategory &&
+        matchDate &&
+        Boolean(product.is_active)
+      );
+    });
+  }, [products, search, category, appliedDateRange]);
+
+  // =====================================
+  // PAGINATION LOGIC
+  // =====================================
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, appliedDateRange]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / itemsPerPage)
   );
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedProducts = filteredProducts.slice(
+    (safeCurrentPage - 1) * itemsPerPage,
+    safeCurrentPage * itemsPerPage
+  );
+
+  const startItem =
+    filteredProducts.length === 0
+      ? 0
+      : (safeCurrentPage - 1) * itemsPerPage + 1;
+
+  const endItem = Math.min(
+    safeCurrentPage * itemsPerPage,
+    filteredProducts.length
+  );
+
+  // =====================================
+  // FORMAT CURRENCY
+  // =====================================
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("id-ID", {
@@ -198,28 +254,32 @@ export default function ProductsPage() {
       maximumFractionDigits: 0,
     }).format(value);
 
+  // =====================================
+  // CATEGORY COLORS
+  // =====================================
+
   const getCategoryClass = (value: string) => {
-  switch (value) {
-    case "Makanan":
-      return "bg-orange-50 text-orange-600";
+    switch (normalizeCategory(value)) {
+      case "Coffee":
+        return "bg-amber-100 text-amber-800";
 
-    case "Minuman":
-      return "bg-blue-50 text-blue-500";
+      case "Non Coffee":
+        return "bg-emerald-100 text-emerald-700";
 
-    case "Kopi":
-      return "bg-orange-50 text-orange-500";
+      case "Makanan":
+        return "bg-orange-100 text-orange-700";
 
-    case "Snack":
-      return "bg-yellow-50 text-yellow-600";
+      case "Snack":
+        return "bg-yellow-100 text-yellow-700";
 
-    default:
-      return "";
-  }
-};
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
 
-  /* ======================
-     OPEN ADD MODAL
-  ====================== */
+  // =====================================
+  // OPEN ADD MODAL
+  // =====================================
 
   const openAddModal = () => {
     setEditingId(null);
@@ -229,9 +289,9 @@ export default function ProductsPage() {
     setShowModal(true);
   };
 
-  /* ======================
-     OPEN EDIT MODAL
-  ====================== */
+  // =====================================
+  // OPEN EDIT MODAL
+  // =====================================
 
   const openEditModal = (product: Product) => {
     setEditingId(product.id);
@@ -239,8 +299,9 @@ export default function ProductsPage() {
 
     setForm({
       name: product.name,
-      category:
-        product.category as ProductCategory,
+      category: normalizeCategory(
+        product.category
+      ) as ProductCategory,
       price: String(product.price),
       stock: String(product.stock),
       image: product.image ?? "",
@@ -250,9 +311,9 @@ export default function ProductsPage() {
     setShowModal(true);
   };
 
-  /* ======================
-     UPLOAD IMAGE PREVIEW
-  ====================== */
+  // =====================================
+  // IMAGE UPLOAD PREVIEW
+  // =====================================
 
   const handleImageUpload = (
     event: ChangeEvent<HTMLInputElement>
@@ -303,9 +364,9 @@ export default function ProductsPage() {
     reader.readAsDataURL(file);
   };
 
-  /* ======================
-     SAVE PRODUCT TO MYSQL
-  ====================== */
+  // =====================================
+  // SAVE PRODUCT TO MYSQL
+  // =====================================
 
   const handleSave = async () => {
     if (saving) return;
@@ -324,11 +385,7 @@ export default function ProductsPage() {
     const price = Number(form.price);
     const stock = Number(form.stock);
 
-    /* REVISI DOSEN:
-       HARGA MINIMAL 10.000
-       HARGA MAKSIMAL 100.000.000
-    */
-
+    // Validasi harga.
     if (
       !Number.isInteger(price) ||
       price < 10000 ||
@@ -340,6 +397,7 @@ export default function ProductsPage() {
       return;
     }
 
+    // Validasi stok.
     if (
       !Number.isInteger(stock) ||
       stock < 0
@@ -408,9 +466,9 @@ export default function ProductsPage() {
     }
   };
 
-  /* ======================
-     DELETE PRODUCT
-  ====================== */
+  // =====================================
+  // DELETE PRODUCT
+  // =====================================
 
   const handleDelete = async (id: number) => {
     const confirmed =
@@ -438,6 +496,10 @@ export default function ProductsPage() {
     }
   };
 
+  // =====================================
+  // RENDER
+  // =====================================
+
   return (
     <main className="flex min-h-screen bg-[#f5f5f5]">
       <Sidebar />
@@ -448,7 +510,7 @@ export default function ProductsPage() {
         <div className="mb-5">
           <AdminHeader
             title="Manajemen Menu Produk"
-            subtitle="Kelola menu yang tersedia di caffe Anda."
+            subtitle="Kelola menu yang tersedia di cafe Anda."
           />
         </div>
 
@@ -480,9 +542,7 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() =>
-                setShowDateFilter(
-                  !showDateFilter
-                )
+                setShowDateFilter(!showDateFilter)
               }
               className="flex h-[40px] min-w-[225px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 text-[11px] text-gray-600"
             >
@@ -562,21 +622,10 @@ export default function ProductsPage() {
                 Semua kategori
               </option>
 
-              <option value="Makanan">
-                Makanan
-              </option>
-
-              <option value="Minuman">
-                Minuman
-              </option>
-
-              <option value="Kopi">
-                Kopi
-              </option>
-
-              <option value="Snack">
-                Snack
-              </option>
+              <option value="Coffee">Coffee</option>
+              <option value="Non Coffee">Non Coffee</option>
+              <option value="Makanan">Makanan</option>
+              <option value="Snack">Snack</option>
             </select>
 
             <ChevronDown
@@ -627,7 +676,7 @@ export default function ProductsPage() {
               </thead>
 
               <tbody>
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <tr
                     key={product.id}
                     className="text-[11px] text-gray-700 transition hover:bg-gray-50"
@@ -664,7 +713,7 @@ export default function ProductsPage() {
                           product.category
                         )}`}
                       >
-                        {product.category}
+                        {normalizeCategory(product.category)}
                       </span>
                     </td>
 
@@ -691,9 +740,7 @@ export default function ProductsPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            void handleDelete(
-                              product.id
-                            )
+                            void handleDelete(product.id)
                           }
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
                         >
@@ -704,7 +751,7 @@ export default function ProductsPage() {
                   </tr>
                 ))}
 
-                {filteredProducts.length === 0 && (
+                {paginatedProducts.length === 0 && (
                   <tr>
                     <td
                       colSpan={5}
@@ -721,12 +768,114 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* PAGINATION */}
+
+          <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] text-gray-500">
+              Menampilkan{" "}
+              <span className="font-semibold text-gray-700">
+                {startItem}-{endItem}
+              </span>{" "}
+              dari{" "}
+              <span className="font-semibold text-gray-700">
+                {filteredProducts.length}
+              </span>{" "}
+              menu
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              <button
+                type="button"
+                disabled={safeCurrentPage === 1}
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.max(1, prev - 1)
+                  )
+                }
+                className="rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              {(() => {
+                const pages: (number | string)[] = [];
+
+                const start = Math.max(
+                  2,
+                  safeCurrentPage - 1
+                );
+
+                const end = Math.min(
+                  totalPages - 1,
+                  safeCurrentPage + 1
+                );
+
+                pages.push(1);
+
+                if (start > 2) {
+                  pages.push("...");
+                }
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(i);
+                }
+
+                if (end < totalPages - 1) {
+                  pages.push("...");
+                }
+
+                if (totalPages > 1) {
+                  pages.push(totalPages);
+                }
+
+                return pages.map((page, index) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="flex h-8 min-w-6 items-center justify-center text-[11px] text-gray-400"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(Number(page))
+                      }
+                      className={`h-8 min-w-8 rounded-lg px-2 text-[11px] font-medium transition ${
+                        safeCurrentPage === page
+                          ? "bg-[#e63131] text-white"
+                          : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                );
+              })()}
+
+              <button
+                type="button"
+                disabled={safeCurrentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(totalPages, prev + 1)
+                  )
+                }
+                className="rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* =========================
+      {/* =====================================
           ADD / EDIT MODAL
-      ========================== */}
+      ===================================== */}
 
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 p-4">
@@ -748,9 +897,7 @@ export default function ProductsPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowModal(false)
-                }
+                onClick={() => setShowModal(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
               >
                 <X size={18} />
@@ -795,21 +942,10 @@ export default function ProductsPage() {
                   }
                   className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
                 >
-                  <option value="Makanan">
-                    Makanan
-                  </option>
-
-                  <option value="Minuman">
-                    Minuman
-                  </option>
-
-                  <option value="Kopi">
-                    Kopi
-                  </option>
-
-                  <option value="Snack">
-                    Snack
-                  </option>
+                  <option value="Coffee">Coffee</option>
+                  <option value="Non Coffee">Non Coffee</option>
+                  <option value="Makanan">Makanan</option>
+                  <option value="Snack">Snack</option>
                 </select>
               </div>
 
@@ -867,9 +1003,11 @@ export default function ProductsPage() {
                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-4 text-[10px] font-medium text-gray-600 transition hover:border-red-400 hover:bg-red-50">
                   <Upload size={16} />
 
-                  {form.image
-                    ? "Ganti Gambar"
-                    : "Upload Gambar Menu"}
+                  {selectedImageFile
+                    ? selectedImageFile.name
+                    : form.image
+                      ? "Ganti Gambar"
+                      : "Upload Gambar Menu"}
 
                   <input
                     type="file"
@@ -879,9 +1017,8 @@ export default function ProductsPage() {
                   />
                 </label>
 
-                <p className="mt-3 flex h-[90px] items-center justify-center rounded-lg border border-gray-200 bg-white">
-                  JPG, PNG atau WEBP.
-                  Maksimal 2 MB.
+                <p className="mt-2 text-[9px] text-gray-400">
+                  Format JPG, PNG, atau WEBP. Maksimal 2 MB.
                 </p>
 
                 {/* PREVIEW */}
@@ -908,8 +1045,7 @@ export default function ProductsPage() {
                         </p>
 
                         <p className="mt-1 text-[8px] text-gray-400">
-                          Klik Ganti Gambar jika
-                          ingin memilih foto lain.
+                          Klik Ganti Gambar jika ingin memilih foto lain.
                         </p>
                       </div>
                     </div>
@@ -936,9 +1072,7 @@ export default function ProductsPage() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setShowModal(false)
-                }
+                onClick={() => setShowModal(false)}
                 className="h-[40px] rounded-lg border border-gray-200 px-5 text-[11px] font-medium text-gray-600 transition hover:bg-gray-50"
               >
                 Batalkan
@@ -946,11 +1080,9 @@ export default function ProductsPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  void handleSave()
-                }
+                onClick={() => void handleSave()}
                 disabled={saving}
-                className="h-[40px] rounded-lg bg-[#e63131] px-5 text-[11px] font-semibold text-white transition hover:bg-[#ca2929]"
+                className="h-[40px] rounded-lg bg-[#e63131] px-5 text-[11px] font-semibold text-white transition hover:bg-[#ca2929] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving
                   ? "Menyimpan..."
