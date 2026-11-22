@@ -1,7 +1,10 @@
+
 "use client";
 
 import {
-  ChangeEvent,
+  type ChangeEvent,
+  useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -22,244 +25,300 @@ import {
 
 import Sidebar from "@/components/Sidebar";
 import AdminHeader from "@/components/AdminHeader";
+import { productService } from "@/services/productService";
+
+import type {
+  Product,
+  ProductInput,
+} from "@/types/product";
 
 type ProductCategory =
+  | "Coffee"
+  | "Non Coffee"
   | "Makanan"
-  | "Minuman"
-  | "Kopi"
   | "Snack";
 
-type Product = {
-  id: number;
+type ProductForm = {
   name: string;
   category: ProductCategory;
-  price: number;
-  stock: number;
+  price: string;
+  stock: string;
   image: string;
 };
 
-const initialProducts: Product[] = [
-  {
-    id: 1,
-    name: "Bakmi Jaya",
-    category: "Makanan",
-    price: 26182,
-    stock: 50,
-    image: "/images/menu/bakmi-jaya.jpg",
-  },
-  {
-    id: 2,
-    name: "Kopi Susu Berjaya",
-    category: "Kopi",
-    price: 24545,
-    stock: 42,
-    image: "/images/menu/kopi-susu.jpg",
-  },
-  {
-    id: 3,
-    name: "Nasi Goreng Jawa",
-    category: "Makanan",
-    price: 42211,
-    stock: 38,
-    image: "/images/menu/nasi-goreng.jpg",
-  },
-  {
-    id: 4,
-    name: "Mie Goreng Jawa",
-    category: "Makanan",
-    price: 42211,
-    stock: 35,
-    image: "/images/menu/mie-goreng.jpg",
-  },
-  {
-    id: 5,
-    name: "Milkshake Mango",
-    category: "Minuman",
-    price: 34545,
-    stock: 25,
-    image: "/images/menu/milkshake-mango.jpg",
-  },
-  {
-    id: 6,
-    name: "Bakmi Jaya Special",
-    category: "Makanan",
-    price: 32000,
-    stock: 30,
-    image: "/images/menu/bakmi-jaya.jpg",
-  },
-  {
-    id: 7,
-    name: "Kopi Susu Large",
-    category: "Kopi",
-    price: 30000,
-    stock: 20,
-    image: "/images/menu/kopi-susu.jpg",
-  },
-  {
-    id: 8,
-    name: "Nasi Goreng Special",
-    category: "Makanan",
-    price: 48000,
-    stock: 27,
-    image: "/images/menu/nasi-goreng.jpg",
-  },
-  {
-    id: 9,
-    name: "Mie Goreng Special",
-    category: "Makanan",
-    price: 47000,
-    stock: 23,
-    image: "/images/menu/mie-goreng.jpg",
-  },
-  {
-    id: 10,
-    name: "Milkshake Mango Large",
-    category: "Minuman",
-    price: 39000,
-    stock: 18,
-    image: "/images/menu/milkshake-mango.jpg",
-  },
-];
-
-const emptyForm = {
+const emptyForm: ProductForm = {
   name: "",
-  category: "Makanan" as ProductCategory,
+  category: "Makanan",
   price: "",
   stock: "",
   image: "",
 };
 
+// =====================================
+// IMAGE URL
+// =====================================
+
+function imageUrl(image: string | null): string {
+  if (!image) return "";
+
+  const value = image.trim();
+  if (!value) return "";
+
+  // Preview lokal dari FileReader.
+  if (value.startsWith("data:")) return value;
+
+  // URL eksternal yang sudah lengkap.
+  if (/^https?:\/\//i.test(value)) return value;
+
+  // Gambar hasil upload disajikan oleh backend.
+  if (value.startsWith("/uploads/") || value.startsWith("uploads/")) {
+    const backend = (
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+    )
+      .replace(/\/api\/?$/, "")
+      .replace(/\/$/, "");
+
+    const uploadPath = value.startsWith("/") ? value : `/${value}`;
+    return `${backend}${uploadPath}`;
+  }
+
+  // Gambar lama di folder public frontend.
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+// =====================================
+// NORMALISASI KATEGORI
+// =====================================
+
+function normalizeCategory(value: string): ProductCategory | string {
+  switch (value.trim().toLowerCase()) {
+    case "kopi":
+    case "coffee":
+      return "Coffee";
+
+    case "minuman":
+    case "non coffee":
+    case "non-coffee":
+      return "Non Coffee";
+
+    case "makanan":
+      return "Makanan";
+
+    case "snack":
+      return "Snack";
+
+    default:
+      return value.trim();
+  }
+}
+
+function productDate(value?: string): string {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
+// =====================================
+// MAIN PAGE
+// =====================================
+
 export default function ProductsPage() {
-  const [products, setProducts] =
-    useState<Product[]>(initialProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("Semua");
 
-  const [category, setCategory] =
-    useState("Semua");
+  // PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const [
-    showDateFilter,
-    setShowDateFilter,
-  ] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
-  const [startDate, setStartDate] =
-    useState("2026-10-02");
+  const [startDate, setStartDate] = useState("2026-10-02");
+  const [endDate, setEndDate] = useState("2026-10-02");
 
-  const [endDate, setEndDate] =
-    useState("2026-10-02");
+  const [showModal, setShowModal] = useState(false);
 
-  const [showModal, setShowModal] =
-    useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [editingId, setEditingId] =
-    useState<number | null>(null);
+  const [form, setForm] = useState<ProductForm>(emptyForm);
 
-  const [form, setForm] =
-    useState(emptyForm);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
 
-  const filteredProducts = useMemo(
-    () => {
-      const keyword =
-        search.toLowerCase();
+  const [appliedDateRange, setAppliedDateRange] = useState<{
+    startDate: string;
+    endDate: string;
+  } | null>(null);
 
-      return products.filter(
-        (product) => {
-          const matchSearch =
-            product.name
-              .toLowerCase()
-              .includes(keyword);
+  // =====================================
+  // LOAD PRODUCTS FROM API
+  // =====================================
 
-          const matchCategory =
-            category === "Semua" ||
-            product.category ===
-              category;
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-          return (
-            matchSearch &&
-            matchCategory
-          );
-        }
+    try {
+      const result = await productService.getAll();
+      setProducts(result.data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengambil produk."
       );
-    },
-    [products, search, category]
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadProducts();
+  }, [loadProducts]);
+
+  // =====================================
+  // FILTER PRODUCTS
+  // =====================================
+
+  const filteredProducts = useMemo(() => {
+    const keyword = search.toLowerCase();
+
+    return products.filter((product) => {
+      const matchSearch = product.name
+        .toLowerCase()
+        .includes(keyword);
+
+      const matchCategory =
+        category === "Semua" ||
+        normalizeCategory(product.category) === category;
+
+      const created = productDate(product.created_at);
+
+      const matchDate =
+        !appliedDateRange ||
+        (
+          created >= appliedDateRange.startDate &&
+          created <= appliedDateRange.endDate
+        );
+
+      return (
+        matchSearch &&
+        matchCategory &&
+        matchDate &&
+        Boolean(product.is_active)
+      );
+    });
+  }, [products, search, category, appliedDateRange]);
+
+  // =====================================
+  // PAGINATION LOGIC
+  // =====================================
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, appliedDateRange]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / itemsPerPage)
   );
 
-  const formatCurrency = (
-    value: number
-  ) =>
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedProducts = filteredProducts.slice(
+    (safeCurrentPage - 1) * itemsPerPage,
+    safeCurrentPage * itemsPerPage
+  );
+
+  const startItem =
+    filteredProducts.length === 0
+      ? 0
+      : (safeCurrentPage - 1) * itemsPerPage + 1;
+
+  const endItem = Math.min(
+    safeCurrentPage * itemsPerPage,
+    filteredProducts.length
+  );
+
+  // =====================================
+  // FORMAT CURRENCY
+  // =====================================
+
+  const formatCurrency = (value: number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       maximumFractionDigits: 0,
     }).format(value);
 
-  const getCategoryClass = (
-    value: ProductCategory
-  ) => {
-    switch (value) {
+  // =====================================
+  // CATEGORY COLORS
+  // =====================================
+
+  const getCategoryClass = (value: string) => {
+    switch (normalizeCategory(value)) {
+      case "Coffee":
+        return "bg-amber-100 text-amber-800";
+
+      case "Non Coffee":
+        return "bg-emerald-100 text-emerald-700";
+
       case "Makanan":
-        return "bg-red-50 text-red-500";
-
-      case "Minuman":
-        return "bg-blue-50 text-blue-500";
-
-      case "Kopi":
-        return "bg-orange-50 text-orange-500";
+        return "bg-orange-100 text-orange-700";
 
       case "Snack":
-        return "bg-yellow-50 text-yellow-600";
+        return "bg-yellow-100 text-yellow-700";
 
       default:
-        return "";
+        return "bg-gray-100 text-gray-600";
     }
   };
 
-  /* ======================
-     OPEN ADD MODAL
-  ====================== */
+  // =====================================
+  // OPEN ADD MODAL
+  // =====================================
 
   const openAddModal = () => {
     setEditingId(null);
-    setForm(emptyForm);
+    setEditingProduct(null);
+    setForm({ ...emptyForm });
+    setSelectedImageFile(null);
     setShowModal(true);
   };
 
-  /* ======================
-     OPEN EDIT MODAL
-  ====================== */
+  // =====================================
+  // OPEN EDIT MODAL
+  // =====================================
 
-  const openEditModal = (
-    product: Product
-  ) => {
+  const openEditModal = (product: Product) => {
     setEditingId(product.id);
+    setEditingProduct(product);
 
     setForm({
       name: product.name,
-      category:
-        product.category,
-      price: String(
-        product.price
-      ),
-      stock: String(
-        product.stock
-      ),
-      image: product.image,
+      category: normalizeCategory(
+        product.category
+      ) as ProductCategory,
+      price: String(product.price),
+      stock: String(product.stock),
+      image: product.image ?? "",
     });
 
+    setSelectedImageFile(null);
     setShowModal(true);
   };
 
-  /* ======================
-     UPLOAD IMAGE
-  ====================== */
+  // =====================================
+  // IMAGE UPLOAD PREVIEW
+  // =====================================
 
   const handleImageUpload = (
     event: ChangeEvent<HTMLInputElement>
   ) => {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) return;
 
@@ -269,11 +328,7 @@ export default function ProductsPage() {
       "image/webp",
     ];
 
-    if (
-      !allowedTypes.includes(
-        file.type
-      )
-    ) {
+    if (!allowedTypes.includes(file.type)) {
       window.alert(
         "Format gambar harus JPG, PNG, atau WEBP."
       );
@@ -282,10 +337,7 @@ export default function ProductsPage() {
       return;
     }
 
-    if (
-      file.size >
-      2 * 1024 * 1024
-    ) {
+    if (file.size > 2 * 1024 * 1024) {
       window.alert(
         "Ukuran gambar maksimal 2 MB."
       );
@@ -294,122 +346,159 @@ export default function ProductsPage() {
       return;
     }
 
-    const reader =
-      new FileReader();
+    setSelectedImageFile(file);
+
+    const reader = new FileReader();
 
     reader.onloadend = () => {
-      const imageData =
-        reader.result as string;
+      if (typeof reader.result !== "string") {
+        return;
+      }
 
       setForm((prev) => ({
         ...prev,
-        image: imageData,
+        image: reader.result as string,
       }));
     };
 
     reader.readAsDataURL(file);
   };
 
-  /* ======================
-     SAVE PRODUCT
-  ====================== */
+  // =====================================
+  // SAVE PRODUCT TO MYSQL
+  // =====================================
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
+
     if (
       !form.name.trim() ||
-      !form.price ||
-      !form.stock
+      form.price.trim() === "" ||
+      form.stock.trim() === ""
     ) {
       window.alert(
         "Nama menu, harga, dan stok wajib diisi."
       );
-
       return;
     }
 
-    if (!form.image) {
+    const price = Number(form.price);
+    const stock = Number(form.stock);
+
+    // Validasi harga.
+    if (
+      !Number.isInteger(price) ||
+      price < 10000 ||
+      price > 100000000
+    ) {
       window.alert(
-        "Silakan upload gambar menu."
+        "Harga minimal Rp10.000 dan maksimal Rp100.000.000."
       );
-
       return;
     }
 
-    if (editingId !== null) {
-      setProducts((prev) =>
-        prev.map((product) =>
-          product.id ===
-          editingId
-            ? {
-                ...product,
-                name: form.name,
-                category:
-                  form.category,
-                price: Number(
-                  form.price
-                ),
-                stock: Number(
-                  form.stock
-                ),
-                image:
-                  form.image,
-              }
-            : product
-        )
+    // Validasi stok.
+    if (
+      !Number.isInteger(stock) ||
+      stock < 0
+    ) {
+      window.alert(
+        "Stok harus berupa bilangan bulat minimal 0."
       );
-    } else {
-      setProducts((prev) => [
-        ...prev,
-        {
-          id:
-            Math.max(
-              ...prev.map(
-                (item) =>
-                  item.id
-              ),
-              0
-            ) + 1,
-
-          name: form.name,
-          category:
-            form.category,
-          price: Number(
-            form.price
-          ),
-          stock: Number(
-            form.stock
-          ),
-          image: form.image,
-        },
-      ]);
+      return;
     }
 
-    setShowModal(false);
-    setEditingId(null);
-    setForm(emptyForm);
+    setSaving(true);
+
+    try {
+      let storedImage: string | null =
+        editingProduct?.image ?? null;
+
+      if (selectedImageFile) {
+        const uploaded =
+          await productService.uploadImage(
+            selectedImageFile
+          );
+
+        storedImage = uploaded.image;
+      }
+
+      const payload: ProductInput = {
+        name: form.name.trim(),
+        category: form.category,
+        price,
+        stock,
+        image: storedImage,
+        is_active:
+          editingProduct?.is_active ?? true,
+      };
+
+      if (editingId !== null) {
+        await productService.update(
+          editingId,
+          payload
+        );
+      } else {
+        await productService.create(payload);
+      }
+
+      await loadProducts();
+
+      setShowModal(false);
+      setEditingId(null);
+      setEditingProduct(null);
+      setSelectedImageFile(null);
+      setForm({ ...emptyForm });
+
+      window.alert(
+        editingId !== null
+          ? "Produk berhasil diperbarui."
+          : "Produk berhasil ditambahkan."
+      );
+    } catch (err) {
+      window.alert(
+        err instanceof Error
+          ? err.message
+          : "Gagal menyimpan produk."
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  /* ======================
-     DELETE PRODUCT
-  ====================== */
+  // =====================================
+  // DELETE PRODUCT
+  // =====================================
 
-  const handleDelete = (
-    id: number
-  ) => {
+  const handleDelete = async (id: number) => {
     const confirmed =
-      window.confirm(
-        "Hapus menu ini?"
-      );
+      window.confirm("Hapus menu ini?");
 
     if (!confirmed) return;
 
-    setProducts((prev) =>
-      prev.filter(
-        (product) =>
-          product.id !== id
-      )
-    );
+    try {
+      await productService.changeStatus(
+        id,
+        false
+      );
+
+      await loadProducts();
+
+      window.alert(
+        "Menu berhasil dinonaktifkan."
+      );
+    } catch (err) {
+      window.alert(
+        err instanceof Error
+          ? err.message
+          : "Gagal menonaktifkan produk."
+      );
+    }
   };
+
+  // =====================================
+  // RENDER
+  // =====================================
 
   return (
     <main className="flex min-h-screen bg-[#f5f5f5]">
@@ -417,10 +506,11 @@ export default function ProductsPage() {
 
       <section className="min-w-0 flex-1 p-5">
         {/* HEADER */}
+
         <div className="mb-5">
           <AdminHeader
             title="Manajemen Menu Produk"
-            subtitle="Kelola menu yang tersedia di caffe Anda."
+            subtitle="Kelola menu yang tersedia di cafe Anda."
           />
         </div>
 
@@ -439,9 +529,7 @@ export default function ProductsPage() {
               type="text"
               value={search}
               onChange={(e) =>
-                setSearch(
-                  e.target.value
-                )
+                setSearch(e.target.value)
               }
               placeholder="Cari nama menu"
               className="h-[40px] w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-[11px] outline-none transition focus:border-red-400"
@@ -454,24 +542,17 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() =>
-                setShowDateFilter(
-                  !showDateFilter
-                )
+                setShowDateFilter(!showDateFilter)
               }
               className="flex h-[40px] min-w-[225px] items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 text-[11px] text-gray-600"
             >
-              <CalendarDays
-                size={15}
-              />
+              <CalendarDays size={15} />
 
               <span className="flex-1 text-left">
-                {startDate} -{" "}
-                {endDate}
+                {startDate} - {endDate}
               </span>
 
-              <ChevronDown
-                size={13}
-              />
+              <ChevronDown size={13} />
             </button>
 
             {showDateFilter && (
@@ -484,9 +565,7 @@ export default function ProductsPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) =>
-                    setStartDate(
-                      e.target.value
-                    )
+                    setStartDate(e.target.value)
                   }
                   className="mb-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px]"
                 />
@@ -495,20 +574,32 @@ export default function ProductsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) =>
-                    setEndDate(
-                      e.target.value
-                    )
+                    setEndDate(e.target.value)
                   }
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-[10px]"
                 />
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowDateFilter(
-                      false
-                    )
-                  }
+                  onClick={() => {
+                    if (
+                      !startDate ||
+                      !endDate ||
+                      startDate > endDate
+                    ) {
+                      window.alert(
+                        "Periksa rentang tanggal."
+                      );
+                      return;
+                    }
+
+                    setAppliedDateRange({
+                      startDate,
+                      endDate,
+                    });
+
+                    setShowDateFilter(false);
+                  }}
                   className="mt-4 h-[34px] w-full rounded-lg bg-[#e63131] text-[10px] font-semibold text-white transition hover:bg-[#ca2929]"
                 >
                   Terapkan
@@ -518,13 +609,12 @@ export default function ProductsPage() {
           </div>
 
           {/* CATEGORY */}
+
           <div className="relative">
             <select
               value={category}
               onChange={(e) =>
-                setCategory(
-                  e.target.value
-                )
+                setCategory(e.target.value)
               }
               className="h-[40px] min-w-[180px] appearance-none rounded-lg border border-gray-200 bg-white px-4 pr-9 text-[11px] outline-none"
             >
@@ -532,21 +622,10 @@ export default function ProductsPage() {
                 Semua kategori
               </option>
 
-              <option value="Makanan">
-                Makanan
-              </option>
-
-              <option value="Minuman">
-                Minuman
-              </option>
-
-              <option value="Kopi">
-                Kopi
-              </option>
-
-              <option value="Snack">
-                Snack
-              </option>
+              <option value="Coffee">Coffee</option>
+              <option value="Non Coffee">Non Coffee</option>
+              <option value="Makanan">Makanan</option>
+              <option value="Snack">Snack</option>
             </select>
 
             <ChevronDown
@@ -568,6 +647,7 @@ export default function ProductsPage() {
         </div>
 
         {/* TABLE */}
+
         <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-separate border-spacing-0">
@@ -596,117 +676,206 @@ export default function ProductsPage() {
               </thead>
 
               <tbody>
-                {filteredProducts.map(
-                  (product) => (
-                    <tr
-                      key={
-                        product.id
-                      }
-                      className="text-[11px] text-gray-700 transition hover:bg-gray-50"
-                    >
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        <div className="flex items-center gap-3">
+                {paginatedProducts.map((product) => (
+                  <tr
+                    key={product.id}
+                    className="text-[11px] text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      <div className="flex items-center gap-3">
+                        {product.image ? (
                           <Image
-                            src={
-                              product.image
-                            }
-                            alt={
-                              product.name
-                            }
+                            src={imageUrl(product.image)}
+                            alt={product.name}
                             width={40}
                             height={40}
                             unoptimized
                             className="h-[40px] w-[40px] rounded-lg object-cover"
                           />
-
-                          <span className="font-medium text-gray-800">
-                            {
-                              product.name
-                            }
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        <span
-                          className={`inline-flex min-w-[68px] justify-center rounded-full px-3 py-1 text-[9px] font-medium ${getCategoryClass(
-                            product.category
-                          )}`}
-                        >
-                          {
-                            product.category
-                          }
-                        </span>
-                      </td>
-
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        {formatCurrency(
-                          product.price
+                        ) : (
+                          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-gray-100">
+                            <ImagePlus
+                              size={18}
+                              className="text-gray-400"
+                            />
+                          </div>
                         )}
-                      </td>
 
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        {
-                          product.stock
-                        }
-                      </td>
+                        <span className="font-medium text-gray-800">
+                          {product.name}
+                        </span>
+                      </div>
+                    </td>
 
-                      <td className="border-b border-gray-100 px-4 py-2.5">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEditModal(
-                                product
-                              )
-                            }
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
-                          >
-                            <Pencil
-                              size={14}
-                            />
-                          </button>
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      <span
+                        className={`inline-flex min-w-[68px] justify-center rounded-full px-3 py-1 text-[9px] font-medium ${getCategoryClass(
+                          product.category
+                        )}`}
+                      >
+                        {normalizeCategory(product.category)}
+                      </span>
+                    </td>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDelete(
-                                product.id
-                              )
-                            }
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
-                          >
-                            <Trash2
-                              size={14}
-                            />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                )}
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      {formatCurrency(product.price)}
+                    </td>
 
-                {filteredProducts.length ===
-                  0 && (
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      {product.stock}
+                    </td>
+
+                    <td className="border-b border-gray-100 px-4 py-2.5">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openEditModal(product)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
+                        >
+                          <Pencil size={14} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleDelete(product.id)
+                          }
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {paginatedProducts.length === 0 && (
                   <tr>
                     <td
                       colSpan={5}
                       className="py-10 text-center text-[11px] text-gray-400"
                     >
-                      Menu tidak
-                      ditemukan.
+                      {loading
+                        ? "Memuat menu..."
+                        : error
+                          ? error
+                          : "Menu tidak ditemukan."}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* PAGINATION */}
+
+          <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] text-gray-500">
+              Menampilkan{" "}
+              <span className="font-semibold text-gray-700">
+                {startItem}-{endItem}
+              </span>{" "}
+              dari{" "}
+              <span className="font-semibold text-gray-700">
+                {filteredProducts.length}
+              </span>{" "}
+              menu
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              <button
+                type="button"
+                disabled={safeCurrentPage === 1}
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.max(1, prev - 1)
+                  )
+                }
+                className="rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+
+              {(() => {
+                const pages: (number | string)[] = [];
+
+                const start = Math.max(
+                  2,
+                  safeCurrentPage - 1
+                );
+
+                const end = Math.min(
+                  totalPages - 1,
+                  safeCurrentPage + 1
+                );
+
+                pages.push(1);
+
+                if (start > 2) {
+                  pages.push("...");
+                }
+
+                for (let i = start; i <= end; i++) {
+                  pages.push(i);
+                }
+
+                if (end < totalPages - 1) {
+                  pages.push("...");
+                }
+
+                if (totalPages > 1) {
+                  pages.push(totalPages);
+                }
+
+                return pages.map((page, index) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="flex h-8 min-w-6 items-center justify-center text-[11px] text-gray-400"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(Number(page))
+                      }
+                      className={`h-8 min-w-8 rounded-lg px-2 text-[11px] font-medium transition ${
+                        safeCurrentPage === page
+                          ? "bg-[#e63131] text-white"
+                          : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                );
+              })()}
+
+              <button
+                type="button"
+                disabled={safeCurrentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(totalPages, prev + 1)
+                  )
+                }
+                className="rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* =========================
+      {/* =====================================
           ADD / EDIT MODAL
-      ========================== */}
+      ===================================== */}
 
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/30 p-4">
@@ -722,18 +891,13 @@ export default function ProductsPage() {
                 </h2>
 
                 <p className="mt-1 text-[10px] text-gray-500">
-                  Lengkapi informasi
-                  menu.
+                  Lengkapi informasi menu.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowModal(
-                    false
-                  )
-                }
+                onClick={() => setShowModal(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
               >
                 <X size={18} />
@@ -753,9 +917,7 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      name:
-                        e.target
-                          .value,
+                      name: e.target.value,
                     })
                   }
                   className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
@@ -770,38 +932,24 @@ export default function ProductsPage() {
                 </label>
 
                 <select
-                  value={
-                    form.category
-                  }
+                  value={form.category}
                   onChange={(e) =>
                     setForm({
                       ...form,
                       category:
-                        e.target
-                          .value as ProductCategory,
+                        e.target.value as ProductCategory,
                     })
                   }
                   className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none focus:border-red-400"
                 >
-                  <option value="Makanan">
-                    Makanan
-                  </option>
-
-                  <option value="Minuman">
-                    Minuman
-                  </option>
-
-                  <option value="Kopi">
-                    Kopi
-                  </option>
-
-                  <option value="Snack">
-                    Snack
-                  </option>
+                  <option value="Coffee">Coffee</option>
+                  <option value="Non Coffee">Non Coffee</option>
+                  <option value="Makanan">Makanan</option>
+                  <option value="Snack">Snack</option>
                 </select>
               </div>
 
-              {/* PRICE STOCK */}
+              {/* PRICE & STOCK */}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -811,16 +959,14 @@ export default function ProductsPage() {
 
                   <input
                     type="number"
-                    min="0"
-                    value={
-                      form.price
-                    }
+                    min={10000}
+                    max={100000000}
+                    step={1}
+                    value={form.price}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        price:
-                          e.target
-                            .value,
+                        price: e.target.value,
                       })
                     }
                     className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
@@ -835,15 +981,11 @@ export default function ProductsPage() {
                   <input
                     type="number"
                     min="0"
-                    value={
-                      form.stock
-                    }
+                    value={form.stock}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        stock:
-                          e.target
-                            .value,
+                        stock: e.target.value,
                       })
                     }
                     className="h-[44px] w-full rounded-lg border border-gray-200 px-3 text-[11px] outline-none transition focus:border-red-400"
@@ -851,35 +993,32 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              {/* =================
-                  IMAGE UPLOAD
-              ================= */}
+              {/* IMAGE UPLOAD */}
 
               <div>
                 <label className="mb-1.5 block text-[10px] font-medium text-gray-700">
                   Gambar Menu
                 </label>
 
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-[10px] font-medium text-gray-600 transition hover:border-red-400 hover:bg-red-50 hover:text-red-500">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-4 text-[10px] font-medium text-gray-600 transition hover:border-red-400 hover:bg-red-50">
                   <Upload size={16} />
 
-                  {form.image
-                    ? "Ganti Gambar"
-                    : "Upload Gambar Menu"}
+                  {selectedImageFile
+                    ? selectedImageFile.name
+                    : form.image
+                      ? "Ganti Gambar"
+                      : "Upload Gambar Menu"}
 
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    onChange={
-                      handleImageUpload
-                    }
+                    onChange={handleImageUpload}
                     className="hidden"
                   />
                 </label>
 
-                <p className="mt-1.5 text-[8px] text-gray-400">
-                  JPG, PNG atau WEBP.
-                  Maksimal 2 MB.
+                <p className="mt-2 text-[9px] text-gray-400">
+                  Format JPG, PNG, atau WEBP. Maksimal 2 MB.
                 </p>
 
                 {/* PREVIEW */}
@@ -892,9 +1031,7 @@ export default function ProductsPage() {
 
                     <div className="flex items-center gap-3">
                       <Image
-                        src={
-                          form.image
-                        }
+                        src={imageUrl(form.image)}
                         alt="Preview menu"
                         width={80}
                         height={80}
@@ -904,15 +1041,11 @@ export default function ProductsPage() {
 
                       <div>
                         <p className="text-[10px] font-semibold text-gray-700">
-                          Gambar siap
-                          digunakan
+                          Gambar siap digunakan
                         </p>
 
                         <p className="mt-1 text-[8px] text-gray-400">
-                          Klik Ganti
-                          Gambar jika
-                          ingin memilih
-                          foto lain.
+                          Klik Ganti Gambar jika ingin memilih foto lain.
                         </p>
                       </div>
                     </div>
@@ -939,11 +1072,7 @@ export default function ProductsPage() {
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setShowModal(
-                    false
-                  )
-                }
+                onClick={() => setShowModal(false)}
                 className="h-[40px] rounded-lg border border-gray-200 px-5 text-[11px] font-medium text-gray-600 transition hover:bg-gray-50"
               >
                 Batalkan
@@ -951,14 +1080,15 @@ export default function ProductsPage() {
 
               <button
                 type="button"
-                onClick={
-                  handleSave
-                }
-                className="h-[40px] rounded-lg bg-[#e63131] px-5 text-[11px] font-semibold text-white transition hover:bg-[#ca2929]"
+                onClick={() => void handleSave()}
+                disabled={saving}
+                className="h-[40px] rounded-lg bg-[#e63131] px-5 text-[11px] font-semibold text-white transition hover:bg-[#ca2929] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {editingId !== null
-                  ? "Simpan Perubahan"
-                  : "Simpan"}
+                {saving
+                  ? "Menyimpan..."
+                  : editingId !== null
+                    ? "Simpan Perubahan"
+                    : "Simpan"}
               </button>
             </div>
           </div>
